@@ -929,6 +929,7 @@ local function HitboxExpander(enabled)
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
             player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
+            player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
         end
     end
     
@@ -1066,7 +1067,6 @@ local function Telekinesis(enabled)
 end
 
 -- Implementación mejorada del ESP con colores de equipo
--- Continuación de la implementación del ESP
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
     local ESPFolder = Instance.new("Folder")
@@ -1604,24 +1604,67 @@ for _, category in ipairs(Categories) do
     end
 end
 
--- Manejar el respawn del personaje
-LocalPlayer.CharacterAdded:Connect(function(newCharacter)
-    Character = newCharacter
-    Humanoid = Character:WaitForChild("Humanoid")
-    HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    -- Reactivar funciones habilitadas después del respawn
-    for feature, enabled in pairs(EnabledFeatures) do
-        if enabled and feature == "HitboxExpander" then
-            -- No necesitamos hacer nada aquí, ya que HitboxExpander ahora persiste automáticamente
-        elseif enabled and feature == "Speed" then
-            Humanoid.WalkSpeed = enabled
-        elseif enabled and feature == "SuperJump" then
-            Humanoid.JumpPower = enabled
-            Humanoid.JumpHeight = 7.2
+-- Función para hacer que las características persistan después del respawn
+local function SetupRespawnPersistence()
+    LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+        Character = newCharacter
+        Humanoid = Character:WaitForChild("Humanoid")
+        HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+        
+        -- Reactivar funciones habilitadas después del respawn
+        for feature, value in pairs(EnabledFeatures) do
+            if value then
+                if feature == "Fly" then
+                    ToggleFly(true)
+                elseif feature == "Speed" then
+                    Humanoid.WalkSpeed = value
+                elseif feature == "SuperJump" then
+                    Humanoid.JumpPower = value
+                    Humanoid.JumpHeight = 7.2
+                elseif feature == "InfiniteJump" then
+                    InfiniteJump(true)
+                elseif feature == "NoClip" then
+                    NoClip(true)
+                elseif feature == "Reach" then
+                    Reach(true)
+                elseif feature == "AutoDodge" then
+                    AutoDodge(true)
+                elseif feature == "AutoAim" then
+                    AutoAim(true)
+                elseif feature == "DamageMultiplier" then
+                    DamageMultiplier(true)
+                elseif feature == "InstantKill" then
+                    InstantKill(true)
+                elseif feature == "AutoHeal" then
+                    AutoHeal(true)
+                elseif feature == "BunnyHop" then
+                    BunnyHop(true)
+                elseif feature == "SpinBot" then
+                    SpinBot(true)
+                elseif feature == "AntiAim" then
+                    AntiAim(true)
+                elseif feature == "HitboxExpander" then
+                    -- HitboxExpander ya es persistente con la implementación mejorada
+                elseif feature == "ESP" then
+                    ESP(true)
+                elseif feature == "Chams" then
+                    Chams(true)
+                elseif feature == "Tracers" then
+                    Tracers(true)
+                elseif feature == "Fullbright" then
+                    Fullbright(true)
+                elseif feature == "Levitation" then
+                    Levitation(true)
+                elseif feature == "Telekinesis" then
+                    Telekinesis(true)
+                end
+            end
         end
-    end
-end)
+    end)
+end
+
+-- Llamar a la función de persistencia
+SetupRespawnPersistence()
 
 -- Eliminar la GUI de carga
 LoadingGui:Destroy()
@@ -1635,3 +1678,4 @@ UITransparency(10)
 -- Mensaje de confirmación
 print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
+print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
