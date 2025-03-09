@@ -793,22 +793,88 @@ local function AutoDodge(enabled)
     end
 end
 
+-- Función mejorada de AutoAim para que solo apunte a jugadores visibles y vivos
 local function AutoAim(enabled)
     EnabledFeatures["AutoAim"] = enabled
     local connection
+    
+    -- Función para verificar si un jugador es visible
+    local function isPlayerVisible(player)
+        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
+            return false
+        end
+        
+        -- Verificar si el jugador está vivo
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then
+            return false
+        }
+        
+        -- Obtener la posición del jugador
+        local targetPosition = player.Character.HumanoidRootPart.Position
+        local direction = (targetPosition - Camera.CFrame.Position).Unit
+        
+        -- Realizar un raycast para verificar si hay obstáculos entre el jugador local y el objetivo
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+        
+        local raycastResult = workspace:Raycast(Camera.CFrame.Position, direction * 1000, raycastParams)
+        
+        -- Si el raycast golpea algo, verificar si es el jugador objetivo
+        if raycastResult then
+            local hitPart = raycastResult.Instance
+            if hitPart:IsDescendantOf(player.Character) then
+                return true
+            else
+                -- Si el HitboxExpander está activado, verificar si podemos ver parte del hitbox expandido
+                if EnabledFeatures["HitboxExpander"] then
+                    -- Realizar múltiples raycasts desde diferentes ángulos para verificar si alguna parte del hitbox es visible
+                    local angles = {
+                        Vector3.new(0.2, 0, 0),
+                        Vector3.new(-0.2, 0, 0),
+                        Vector3.new(0, 0.2, 0),
+                        Vector3.new(0, -0.2, 0),
+                        Vector3.new(0, 0, 0.2),
+                        Vector3.new(0, 0, -0.2)
+                    }
+                    
+                    for _, angle in ipairs(angles) do
+                        local offsetDirection = (direction + angle).Unit
+                        local offsetResult = workspace:Raycast(Camera.CFrame.Position, offsetDirection * 1000, raycastParams)
+                        
+                        if offsetResult and offsetResult.Instance:IsDescendantOf(player.Character) then
+                            return true
+                        end
+                    end
+                }
+                
+                return false
+            end
+        end
+        
+        -- Si el raycast no golpea nada, el jugador podría estar visible
+        return true
+    end
+    
     if enabled then
         connection = RunService.RenderStepped:Connect(function()
             local closestPlayer = nil
             local closestDistance = math.huge
+            
             for _, player in pairs(Players:GetPlayers()) do
                 if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local distance = (player.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
-                    if distance < closestDistance then
-                        closestPlayer = player
-                        closestDistance = distance
+                    -- Verificar si el jugador es visible y está vivo
+                    if isPlayerVisible(player) then
+                        local distance = (player.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
+                        if distance < closestDistance then
+                            closestPlayer = player
+                            closestDistance = distance
+                        end
                     end
                 end
             end
+            
             if closestPlayer then
                 Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.HumanoidRootPart.Position)
             end
@@ -1072,9 +1138,17 @@ local function Telekinesis(enabled)
     end
 end
 
--- Implementación mejorada del ESP con colores de equipo
+-- Implementación corregida del ESP
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
+    
+    -- Limpiar ESP existente si hay alguno
+    if game.CoreGui:FindFirstChild("ESPFolder") then
+        game.CoreGui.ESPFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
     local ESPFolder = Instance.new("Folder")
     ESPFolder.Name = "ESPFolder"
     ESPFolder.Parent = game.CoreGui
@@ -1089,103 +1163,164 @@ local function ESP(enabled)
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        local function createBoxHighlight()
-            local highlight = Instance.new("Highlight")
-            highlight.Name = player.Name .. "Highlight"
-            highlight.FillColor = getTeamColor(player)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Parent = ESPFolder
-            highlight.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
-            return highlight
-        end
+        -- Crear el ESP para el jugador
+        local espFolder = Instance.new("Folder")
+        espFolder.Name = player.Name .. "_ESP"
+        espFolder.Parent = ESPFolder
         
-        local function createNameTag()
-            local billboardGui = Instance.new("BillboardGui")
-            billboardGui.Name = player.Name .. "NameTag"
-            billboardGui.Size = UDim2.new(0, 200, 0, 50)
-            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-            billboardGui.AlwaysOnTop = true
-            billboardGui.Parent = ESPFolder
-            billboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-            
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.new(1, 0, 0, 20)
-            nameLabel.BackgroundTransparency = 1
-            nameLabel.TextColor3 = getTeamColor(player)
-            nameLabel.TextStrokeTransparency = 0
-            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            nameLabel.Font = Enum.Font.SourceSansBold
-            nameLabel.TextScaled = true
-            nameLabel.Parent = billboardGui
-            nameLabel.ZIndex = 9501 -- Alto ZIndex para estar por encima de todo
-            
-            return billboardGui, nameLabel
-        end
-        
-        local highlight = createBoxHighlight()
-        local nameTag, nameLabel = createNameTag()
-        
-        local function updateESP()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                highlight.Parent = player.Character
-                nameTag.Parent = player.Character.HumanoidRootPart
-                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
-                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-                highlight.FillColor = getTeamColor(player)
-                nameLabel.TextColor3 = getTeamColor(player)
+        -- Crear el cuadro ESP
+        local boxHandler = function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+                -- Verificar si el jugador está vivo
+                if player.Character.Humanoid.Health <= 0 then
+                    return
+                end
+                
+                -- Crear el cuadro si no existe
+                if not espFolder:FindFirstChild("Box") then
+                    local box = Instance.new("BoxHandleAdornment")
+                    box.Name = "Box"
+                    box.Size = Vector3.new(4, 5, 4)
+                    box.Color3 = getTeamColor(player)
+                    box.Transparency = 0.5
+                    box.ZIndex = 10
+                    box.AlwaysOnTop = true
+                    box.Adornee = player.Character.HumanoidRootPart
+                    box.Parent = espFolder
+                else
+                    -- Actualizar el color del cuadro
+                    espFolder.Box.Color3 = getTeamColor(player)
+                end
+                
+                -- Crear el nombre si no existe
+                if not espFolder:FindFirstChild("NameTag") then
+                    local billboardGui = Instance.new("BillboardGui")
+                    billboardGui.Name = "NameTag"
+                    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+                    billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+                    billboardGui.AlwaysOnTop = true
+                    billboardGui.Parent = espFolder
+                    
+                    local nameLabel = Instance.new("TextLabel")
+                    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.TextColor3 = getTeamColor(player)
+                    nameLabel.TextStrokeTransparency = 0
+                    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+                    nameLabel.Font = Enum.Font.SourceSansBold
+                    nameLabel.TextScaled = true
+                    nameLabel.Parent = billboardGui
+                    
+                    -- Asignar el adornee
+                    billboardGui.Adornee = player.Character.Head
+                end
+                
+                -- Actualizar el texto del nombre
+                local nameTag = espFolder:FindFirstChild("NameTag")
+                if nameTag then
+                    nameTag.TextLabel.Text = string.format("%s\n%.1f studs", player.Name, 
+                        (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                    nameTag.TextLabel.TextColor3 = getTeamColor(player)
+                end
+            else
+                -- Limpiar ESP si el personaje no existe
+                if espFolder:FindFirstChild("Box") then
+                    espFolder.Box:Destroy()
+                end
+                if espFolder:FindFirstChild("NameTag") then
+                    espFolder.NameTag:Destroy()
+                end
             end
         end
         
-        local connection = RunService.RenderStepped:Connect(updateESP)
+        -- Ejecutar la función inicialmente
+        boxHandler()
         
-        player.CharacterAdded:Connect(function(char)
-            highlight.Parent = char
-            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
+        -- Configurar conexiones para actualizar el ESP
+        local connection = RunService.RenderStepped:Connect(boxHandler)
+        
+        -- Manejar cuando el personaje cambia
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            -- Esperar a que se carguen las partes necesarias
+            character:WaitForChild("HumanoidRootPart")
+            character:WaitForChild("Head")
+            character:WaitForChild("Humanoid")
+            
+            -- Limpiar ESP anterior
+            if espFolder:FindFirstChild("Box") then
+                espFolder.Box:Destroy()
+            end
+            if espFolder:FindFirstChild("NameTag") then
+                espFolder.NameTag:Destroy()
+            end
+            
+            -- Crear nuevo ESP
+            boxHandler()
         end)
         
+        -- Devolver las conexiones para limpiarlas más tarde
         return {
-            highlight = highlight,
-            nameTag = nameTag,
-            connection = connection
+            renderConnection = connection,
+            characterConnection = characterAddedConnection
         }
     end
     
-    local espData = {}
+    -- Almacenar conexiones para limpiarlas después
+    local connections = {}
     
-    if enabled then
-        -- Crear ESP para jugadores existentes
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                espData[player] = createESP(player)
-            end
+    -- Crear ESP para jugadores existentes
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            connections[player] = createESP(player)
         end
-        
-        -- Crear ESP para nuevos jugadores
-        Players.PlayerAdded:Connect(function(player)
-            espData[player] = createESP(player)
-        end)
-        
-        -- Limpiar ESP cuando los jugadores salen
-        Players.PlayerRemoving:Connect(function(player)
-            if espData[player] then
-                espData[player].highlight:Destroy()
-                espData[player].nameTag:Destroy()
-                espData[player].connection:Disconnect()
-                espData[player] = nil
-            end
-        end)
-    else
-        -- Limpiar todo el ESP
-        for player, data in pairs(espData) do
-            data.highlight:Destroy()
-            data.nameTag:Destroy()
-            data.connection:Disconnect()
-            espData[player] = nil
-        end
-        ESPFolder:Destroy()
     end
+    
+    -- Manejar nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        connections[player] = createESP(player)
+    end)
+    
+    -- Manejar jugadores que salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if connections[player] then
+            connections[player].renderConnection:Disconnect()
+            connections[player].characterConnection:Disconnect()
+            connections[player] = nil
+        end
+        
+        -- Eliminar carpeta ESP del jugador
+        local playerESP = ESPFolder:FindFirstChild(player.Name .. "_ESP")
+        if playerESP then
+            playerESP:Destroy()
+        end
+    end)
+    
+    -- Guardar conexiones principales en la carpeta para limpiarlas después
+    ESPFolder:SetAttribute("PlayerAddedConnection", true)
+    ESPFolder:SetAttribute("PlayerRemovingConnection", true)
+    
+    -- Función para limpiar cuando se desactiva
+    local function cleanupESP()
+        if playerAddedConnection then
+            playerAddedConnection:Disconnect()
+        end
+        
+        if playerRemovingConnection then
+            playerRemovingConnection:Disconnect()
+        end
+        
+        for _, connectionData in pairs(connections) do
+            connectionData.renderConnection:Disconnect()
+            connectionData.characterConnection:Disconnect()
+        end
+        
+        if ESPFolder then
+            ESPFolder:Destroy()
+        end
+    end
+    
+    -- Devolver función de limpieza
+    return cleanupESP
 end
 
 -- Función para Chams
@@ -1726,3 +1861,4 @@ print("Script mejorado cargado correctamente. Use el botón en la izquierda para
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
 print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
 print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
+print("El ESP ha sido corregido y el AutoAim mejorado para solo apuntar a jugadores visibles y vivos.")
