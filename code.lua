@@ -1097,7 +1097,6 @@ local function ESP(enabled)
             highlight.FillTransparency = 0.5
             highlight.OutlineTransparency = 0
             highlight.Parent = ESPFolder
-            highlight.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
             return highlight
         end
         
@@ -1108,7 +1107,6 @@ local function ESP(enabled)
             billboardGui.StudsOffset = Vector3.new(0, 3, 0)
             billboardGui.AlwaysOnTop = true
             billboardGui.Parent = ESPFolder
-            billboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
             
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -1119,7 +1117,6 @@ local function ESP(enabled)
             nameLabel.Font = Enum.Font.SourceSansBold
             nameLabel.TextScaled = true
             nameLabel.Parent = billboardGui
-            nameLabel.ZIndex = 9501 -- Alto ZIndex para estar por encima de todo
             
             return billboardGui, nameLabel
         end
