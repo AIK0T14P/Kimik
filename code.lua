@@ -111,12 +111,89 @@ local Languages = {
             WeaponMods = "Modificaciones de Armas",
             AutoReload = "Recarga Automática",
             RapidMelee = "Ataque Cuerpo a Cuerpo Rápido",
-            UITransparency = "Transparencia de Interfaz"
+            UITransparency = "Transparencia de Interfaz",
+            ShowHealth = "Mostrar Vida"
         },
         loading = "Cargando..."
     },
     ["English"] = {
         -- ... (English translations)
+        categories = {
+            Movement = "Movement",
+            Combat = "Combat",
+            Visuals = "Visuals",
+            Player = "Player",
+            World = "World",
+            Optimization = "Optimization",
+            Misc = "Misc",
+            Settings = "Settings"
+        },
+        features = {
+            Fly = "Fly",
+            Speed = "Speed",
+            SuperJump = "Super Jump",
+            InfiniteJump = "Infinite Jump",
+            NoClip = "No Clip",
+            GodMode = "God Mode",
+            KillAura = "Kill Aura",
+            AutoParry = "Auto Parry",
+            Reach = "Reach",
+            ESP = "ESP",
+            Chams = "Chams",
+            Tracers = "Tracers",
+            Fullbright = "Fullbright",
+            Invisibility = "Invisibility",
+            AntiAFK = "Anti AFK",
+            AutoReset = "Auto Reset",
+            RemoveFog = "Remove Fog",
+            DayNight = "Day/Night",
+            RemoveTextures = "Remove Textures",
+            ChatSpam = "Chat Spam",
+            AutoFarm = "Auto Farm",
+            ServerHop = "Server Hop",
+            Language = "Language",
+            LowGraphics = "Low Graphics",
+            DisableEffects = "Disable Effects",
+            ReduceTextures = "Reduce Textures",
+            DisableLighting = "Disable Lighting",
+            SaveRespawn = "Save Respawn",
+            DeleteRespawn = "Delete Respawn",
+            SavePosition = "Save Position",
+            TeleportToPosition = "Teleport To Position",
+            BunnyHop = "Bunny Hop",
+            WallRun = "Wall Run",
+            DoubleJump = "Double Jump",
+            AirDash = "Air Dash",
+            Slide = "Slide",
+            Grapple = "Grapple",
+            SpeedBoost = "Speed Boost",
+            JumpBoost = "Jump Boost",
+            Levitation = "Levitation",
+            Blink = "Blink",
+            Telekinesis = "Telekinesis",
+            AutoDodge = "Auto Dodge",
+            AutoAim = "Auto Aim",
+            RapidFire = "Rapid Fire",
+            InfiniteAmmo = "Infinite Ammo",
+            DamageMultiplier = "Damage Multiplier",
+            AutoBlock = "Auto Block",
+            CriticalHit = "Critical Hit",
+            Aimbot = "Aimbot",
+            SilentAim = "Silent Aim",
+            Wallbang = "Wallbang",
+            InstantKill = "Instant Kill",
+            AutoHeal = "Auto Heal",
+            Triggerbot = "Triggerbot",
+            SpinBot = "Spin Bot",
+            AntiAim = "Anti Aim",
+            HitboxExpander = "Hitbox Expander",
+            WeaponMods = "Weapon Mods",
+            AutoReload = "Auto Reload",
+            RapidMelee = "Rapid Melee",
+            UITransparency = "UI Transparency",
+            ShowHealth = "Show Health"
+        },
+        loading = "Loading..."
     }
 }
 
@@ -808,7 +885,7 @@ local function AutoAim(enabled)
         local humanoid = player.Character:FindFirstChild("Humanoid")
         if not humanoid or humanoid.Health <= 0 then
             return false
-        }
+        end
         
         -- Obtener la posición del jugador
         local targetPosition = player.Character.HumanoidRootPart.Position
@@ -847,7 +924,7 @@ local function AutoAim(enabled)
                             return true
                         end
                     end
-                }
+                end
                 
                 return false
             end
@@ -1114,14 +1191,14 @@ local function Telekinesis(enabled)
         end)
 
         mouse.Button1Up:Connect(function()
-            if heldObject then
+            if heldObject and heldObject:FindFirstChildOfClass("BodyPosition") then
                 heldObject:FindFirstChildOfClass("BodyPosition"):Destroy()
                 heldObject = nil
             end
         end)
 
         RunService.RenderStepped:Connect(function()
-            if heldObject then
+            if heldObject and heldObject:FindFirstChildOfClass("BodyPosition") then
                 local bodyPosition = heldObject:FindFirstChildOfClass("BodyPosition")
                 if bodyPosition then
                     bodyPosition.Position = mouse.Hit.Position
@@ -1323,9 +1400,203 @@ local function ESP(enabled)
     return cleanupESP
 end
 
+-- Nueva función para mostrar la vida de los jugadores
+local function ShowHealth(enabled)
+    EnabledFeatures["ShowHealth"] = enabled
+    
+    -- Limpiar indicadores de salud existentes si hay alguno
+    if game.CoreGui:FindFirstChild("HealthFolder") then
+        game.CoreGui.HealthFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
+    local HealthFolder = Instance.new("Folder")
+    HealthFolder.Name = "HealthFolder"
+    HealthFolder.Parent = game.CoreGui
+    
+    local function getHealthColor(health, maxHealth)
+        local healthPercent = health / maxHealth
+        if healthPercent > 0.7 then
+            return Color3.fromRGB(0, 255, 0) -- Verde para salud alta
+        elseif healthPercent > 0.3 then
+            return Color3.fromRGB(255, 255, 0) -- Amarillo para salud media
+        else
+            return Color3.fromRGB(255, 0, 0) -- Rojo para salud baja
+        end
+    end
+    
+    local function createHealthDisplay(player)
+        if player == LocalPlayer then return end
+        
+        local healthFolder = Instance.new("Folder")
+        healthFolder.Name = player.Name .. "_Health"
+        healthFolder.Parent = HealthFolder
+        
+        local function updateHealth()
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                local humanoid = player.Character.Humanoid
+                
+                -- No mostrar salud si el jugador está muerto
+                if humanoid.Health <= 0 then
+                    if healthFolder:FindFirstChild("HealthGui") then
+                        healthFolder.HealthGui:Destroy()
+                    end
+                    return
+                end
+                
+                -- Crear o actualizar el indicador de salud
+                if not healthFolder:FindFirstChild("HealthGui") then
+                    local healthGui = Instance.new("BillboardGui")
+                    healthGui.Name = "HealthGui"
+                    healthGui.Size = UDim2.new(0, 100, 0, 40)
+                    healthGui.StudsOffset = Vector3.new(0, 5, 0)
+                    healthGui.AlwaysOnTop = true
+                    healthGui.Parent = healthFolder
+                    
+                    local healthFrame = Instance.new("Frame")
+                    healthFrame.Size = UDim2.new(1, 0, 0.5, 0)
+                    healthFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    healthFrame.BorderSizePixel = 0
+                    healthFrame.Parent = healthGui
+                    
+                    local healthBar = Instance.new("Frame")
+                    healthBar.Name = "HealthBar"
+                    healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+                    healthBar.BackgroundColor3 = getHealthColor(humanoid.Health, humanoid.MaxHealth)
+                    healthBar.BorderSizePixel = 0
+                    healthBar.Parent = healthFrame
+                    
+                    local healthText = Instance.new("TextLabel")
+                    healthText.Name = "HealthText"
+                    healthText.Size = UDim2.new(1, 0, 0.5, 0)
+                    healthText.Position = UDim2.new(0, 0, 0.5, 0)
+                    healthText.BackgroundTransparency = 1
+                    healthText.Font = Enum.Font.SourceSansBold
+                    healthText.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    healthText.TextStrokeTransparency = 0
+                    healthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                    healthText.TextSize = 14
+                    healthText.Text = string.format("%.0f%%", (humanoid.Health / humanoid.MaxHealth) * 100)
+                    healthText.Parent = healthGui
+                    
+                    -- Asignar el adornee
+                    healthGui.Adornee = player.Character.Head
+                else
+                    -- Actualizar barra de salud y texto
+                    local healthGui = healthFolder.HealthGui
+                    local healthBar = healthGui.HealthFrame.HealthBar
+                    local healthText = healthGui.HealthText
+                    
+                    healthBar.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
+                    healthBar.BackgroundColor3 = getHealthColor(humanoid.Health, humanoid.MaxHealth)
+                    healthText.Text = string.format("%.0f%%", (humanoid.Health / humanoid.MaxHealth) * 100)
+                end
+            else
+                -- Limpiar si el personaje no existe
+                if healthFolder:FindFirstChild("HealthGui") then
+                    healthFolder.HealthGui:Destroy()
+                end
+            end
+        end
+        
+        -- Ejecutar la función inicialmente
+        updateHealth()
+        
+        -- Configurar conexiones para actualizar la salud
+        local connection = RunService.RenderStepped:Connect(updateHealth)
+        
+        -- Manejar cuando el personaje cambia
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            -- Esperar a que se cargue el humanoid
+            character:WaitForChild("Humanoid")
+            character:WaitForChild("Head")
+            
+            -- Limpiar indicador anterior
+            if healthFolder:FindFirstChild("HealthGui") then
+                healthFolder.HealthGui:Destroy()
+            end
+            
+            -- Crear nuevo indicador
+            updateHealth()
+        end)
+        
+        -- Devolver las conexiones para limpiarlas más tarde
+        return {
+            renderConnection = connection,
+            characterConnection = characterAddedConnection
+        }
+    end
+    
+    -- Almacenar conexiones para limpiarlas después
+    local connections = {}
+    
+    -- Crear indicadores de salud para jugadores existentes
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            connections[player] = createHealthDisplay(player)
+        end
+    end
+    
+    -- Manejar nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        connections[player] = createHealthDisplay(player)
+    end)
+    
+    -- Manejar jugadores que salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if connections[player] then
+            connections[player].renderConnection:Disconnect()
+            connections[player].characterConnection:Disconnect()
+            connections[player] = nil
+        end
+        
+        -- Eliminar carpeta de salud del jugador
+        local playerHealth = HealthFolder:FindFirstChild(player.Name .. "_Health")
+        if playerHealth then
+            playerHealth:Destroy()
+        end
+    end)
+    
+    -- Guardar conexiones principales en la carpeta para limpiarlas después
+    HealthFolder:SetAttribute("PlayerAddedConnection", true)
+    HealthFolder:SetAttribute("PlayerRemovingConnection", true)
+    
+    -- Función para limpiar cuando se desactiva
+    local function cleanupHealth()
+        if playerAddedConnection then
+            playerAddedConnection:Disconnect()
+        end
+        
+        if playerRemovingConnection then
+            playerRemovingConnection:Disconnect()
+        end
+        
+        for _, connectionData in pairs(connections) do
+            connectionData.renderConnection:Disconnect()
+            connectionData.characterConnection:Disconnect()
+        end
+        
+        if HealthFolder then
+            HealthFolder:Destroy()
+        end
+    end
+    
+    -- Devolver función de limpieza
+    return cleanupHealth
+end
+
 -- Función para Chams
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
+    
+    -- Limpiar Chams existentes si hay alguno
+    if game.CoreGui:FindFirstChild("ChamsFolder") then
+        game.CoreGui.ChamsFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
     local ChamsFolder = Instance.new("Folder")
     ChamsFolder.Name = "ChamsFolder"
     ChamsFolder.Parent = game.CoreGui
@@ -1333,77 +1604,150 @@ local function Chams(enabled)
     local function createChams(player)
         if player == LocalPlayer then return end
 
-        local function applyChams(part)
-            local chamPart = Instance.new("BoxHandleAdornment")
-            chamPart.Name = player.Name .. "Cham"
-            chamPart.Adornee = part
-            chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
-            chamPart.Size = part.Size
-            chamPart.Transparency = 0.5
-            chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-            chamPart.Parent = ChamsFolder
-            return chamPart
-        end
-
+        local chamsFolder = Instance.new("Folder")
+        chamsFolder.Name = player.Name .. "_Chams"
+        chamsFolder.Parent = ChamsFolder
+        
         local chams = {}
+        
         local function updateChams()
-            if player.Character then
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                -- Verificar si el jugador está vivo
+                if player.Character.Humanoid.Health <= 0 then
+                    for _, cham in pairs(chams) do
+                        cham:Destroy()
+                    end
+                    chams = {}
+                    return
+                end
+                
+                -- Aplicar chams a todas las partes del personaje
                 for _, part in pairs(player.Character:GetChildren()) do
                     if part:IsA("BasePart") and not chams[part] then
-                        chams[part] = applyChams(part)
+                        local chamPart = Instance.new("BoxHandleAdornment")
+                        chamPart.Name = part.Name .. "Cham"
+                        chamPart.Adornee = part
+                        chamPart.AlwaysOnTop = true
+                        chamPart.ZIndex = 9500
+                        chamPart.Size = part.Size
+                        chamPart.Transparency = 0.5
+                        chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+                        chamPart.Parent = chamsFolder
+                        chams[part] = chamPart
                     end
                 end
+            else
+                -- Limpiar chams si el personaje no existe
+                for _, cham in pairs(chams) do
+                    cham:Destroy()
+                end
+                chams = {}
             end
         end
 
+        -- Ejecutar la función inicialmente
+        updateChams()
+        
+        -- Configurar conexiones para actualizar los chams
         local connection = RunService.RenderStepped:Connect(updateChams)
-
-        player.CharacterAdded:Connect(updateChams)
-
+        
+        -- Manejar cuando el personaje cambia
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            -- Limpiar chams anteriores
+            for _, cham in pairs(chams) do
+                cham:Destroy()
+            end
+            chams = {}
+            
+            -- Esperar a que se cargue el humanoid
+            character:WaitForChild("Humanoid")
+            
+            -- Crear nuevos chams
+            updateChams()
+        end)
+        
+        -- Devolver las conexiones para limpiarlas más tarde
         return {
-            chams = chams,
-            connection = connection
+            renderConnection = connection,
+            characterConnection = characterAddedConnection,
+            chams = chams
         }
     end
 
     local chamsData = {}
 
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                chamsData[player] = createChams(player)
-            end
-        end
-
-        Players.PlayerAdded:Connect(function(player)
+    -- Crear chams para jugadores existentes
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
             chamsData[player] = createChams(player)
-        end)
+        end
+    end
 
-        Players.PlayerRemoving:Connect(function(player)
-            if chamsData[player] then
-                for _, cham in pairs(chamsData[player].chams) do
-                    cham:Destroy()
-                end
-                chamsData[player].connection:Disconnect()
-                chamsData[player] = nil
+    -- Manejar nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        chamsData[player] = createChams(player)
+    end)
+
+    -- Manejar jugadores que salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if chamsData[player] then
+            chamsData[player].renderConnection:Disconnect()
+            chamsData[player].characterConnection:Disconnect()
+            for _, cham in pairs(chamsData[player].chams) do
+                cham:Destroy()
             end
-        end)
-    else
+            chamsData[player] = nil
+        end
+        
+        -- Eliminar carpeta de chams del jugador
+        local playerChams = ChamsFolder:FindFirstChild(player.Name .. "_Chams")
+        if playerChams then
+            playerChams:Destroy()
+        end
+    end)
+    
+    -- Guardar conexiones principales en la carpeta para limpiarlas después
+    ChamsFolder:SetAttribute("PlayerAddedConnection", true)
+    ChamsFolder:SetAttribute("PlayerRemovingConnection", true)
+    
+    -- Función para limpiar cuando se desactiva
+    local function cleanupChams()
+        if playerAddedConnection then
+            playerAddedConnection:Disconnect()
+        end
+        
+        if playerRemovingConnection then
+            playerRemovingConnection:Disconnect()
+        end
+        
         for player, data in pairs(chamsData) do
+            data.renderConnection:Disconnect()
+            data.characterConnection:Disconnect()
             for _, cham in pairs(data.chams) do
                 cham:Destroy()
             end
-            data.connection:Disconnect()
-            chamsData[player] = nil
         end
-        ChamsFolder:Destroy()
+        
+        if ChamsFolder then
+            ChamsFolder:Destroy()
+        end
     end
+    
+    -- Devolver función de limpieza
+    return cleanupChams
 end
 
 -- Función para Tracers
 local function Tracers(enabled)
     EnabledFeatures["Tracers"] = enabled
+    
+    -- Limpiar Tracers existentes si hay alguno
+    if game.CoreGui:FindFirstChild("TracersFolder") then
+        game.CoreGui.TracersFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
     local TracersFolder = Instance.new("Folder")
     TracersFolder.Name = "TracersFolder"
     TracersFolder.Parent = game.CoreGui
@@ -1411,63 +1755,139 @@ local function Tracers(enabled)
     local function createTracer(player)
         if player == LocalPlayer then return end
 
-        local tracer = Drawing.new("Line")
-        tracer.Visible = false
-        tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-        tracer.Thickness = 1
-        tracer.Transparency = 1
-
+        local tracerFolder = Instance.new("Folder")
+        tracerFolder.Name = player.Name .. "_Tracer"
+        tracerFolder.Parent = TracersFolder
+        
+        -- Crear línea de tracer usando BillboardGui y Frame
+        local tracerGui = Instance.new("BillboardGui")
+        tracerGui.Name = "TracerGui"
+        tracerGui.AlwaysOnTop = true
+        tracerGui.Size = UDim2.new(0, 200, 0, 200)
+        tracerGui.Adornee = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        tracerGui.Parent = tracerFolder
+        
+        local tracerLine = Instance.new("Frame")
+        tracerLine.Name = "TracerLine"
+        tracerLine.BackgroundColor3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+        tracerLine.BorderSizePixel = 0
+        tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+        tracerLine.ZIndex = 9500
+        tracerLine.Parent = tracerGui
+        
         local function updateTracer()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+                -- Verificar si el jugador está vivo
+                if player.Character.Humanoid.Health <= 0 then
+                    tracerGui.Enabled = false
+                    return
+                end
+                
+                -- Actualizar adornee
+                tracerGui.Adornee = player.Character.HumanoidRootPart
+                
+                -- Calcular posición en pantalla
+                local targetPosition = player.Character.HumanoidRootPart.Position
+                local screenPosition, onScreen = Camera:WorldToScreenPoint(targetPosition)
+                
                 if onScreen then
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(vector.X, vector.Y)
-                    tracer.Visible = true
+                    -- Calcular dirección y distancia
+                    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    local screenPos = Vector2.new(screenPosition.X, screenPosition.Y)
+                    local direction = (screenPos - screenCenter).Unit
+                    local distance = (screenPos - screenCenter).Magnitude
+                    
+                    -- Actualizar línea
+                    tracerLine.Size = UDim2.new(0, 2, 0, distance)
+                    tracerLine.Position = UDim2.new(0.5, 0, 0.5, 0)
+                    tracerLine.Rotation = math.deg(math.atan2(direction.Y, direction.X)) - 90
+                    tracerGui.Enabled = true
                 else
-                    tracer.Visible = false
+                    tracerGui.Enabled = false
                 end
             else
-                tracer.Visible = false
+                tracerGui.Enabled = false
             end
         end
 
+        -- Ejecutar la función inicialmente
+        updateTracer()
+        
+        -- Configurar conexiones para actualizar el tracer
         local connection = RunService.RenderStepped:Connect(updateTracer)
-
+        
+        -- Manejar cuando el personaje cambia
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            -- Esperar a que se cargue el humanoid y el HumanoidRootPart
+            character:WaitForChild("Humanoid")
+            character:WaitForChild("HumanoidRootPart")
+            
+            -- Actualizar tracer
+            updateTracer()
+        end)
+        
+        -- Devolver las conexiones para limpiarlas más tarde
         return {
-            tracer = tracer,
-            connection = connection
+            renderConnection = connection,
+            characterConnection = characterAddedConnection
         }
     end
 
     local tracersData = {}
 
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                tracersData[player] = createTracer(player)
-            end
-        end
-
-        Players.PlayerAdded:Connect(function(player)
+    -- Crear tracers para jugadores existentes
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
             tracersData[player] = createTracer(player)
-        end)
+        end
+    end
 
-        Players.PlayerRemoving:Connect(function(player)
-            if tracersData[player] then
-                tracersData[player].tracer:Remove()
-                tracersData[player].connection:Disconnect()
-                tracersData[player] = nil
-            end
-        end)
-    else
-        for player, data in pairs(tracersData) do
-            data.tracer:Remove()
-            data.connection:Disconnect()
+    -- Manejar nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        tracersData[player] = createTracer(player)
+    end)
+
+    -- Manejar jugadores que salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if tracersData[player] then
+            tracersData[player].renderConnection:Disconnect()
+            tracersData[player].characterConnection:Disconnect()
             tracersData[player] = nil
         end
-        TracersFolder:Destroy()
+        
+        -- Eliminar carpeta de tracer del jugador
+        local playerTracer = TracersFolder:FindFirstChild(player.Name .. "_Tracer")
+        if playerTracer then
+            playerTracer:Destroy()
+        end
+    end)
+    
+    -- Guardar conexiones principales en la carpeta para limpiarlas después
+    TracersFolder:SetAttribute("PlayerAddedConnection", true)
+    TracersFolder:SetAttribute("PlayerRemovingConnection", true)
+    
+    -- Función para limpiar cuando se desactiva
+    local function cleanupTracers()
+        if playerAddedConnection then
+            playerAddedConnection:Disconnect()
+        end
+        
+        if playerRemovingConnection then
+            playerRemovingConnection:Disconnect()
+        end
+        
+        for player, data in pairs(tracersData) do
+            data.renderConnection:Disconnect()
+            data.characterConnection:Disconnect()
+        end
+        
+        if TracersFolder then
+            TracersFolder:Destroy()
+        end
     end
+    
+    -- Devolver función de limpieza
+    return cleanupTracers
 end
 
 -- Función para Fullbright
@@ -1532,7 +1952,7 @@ for i, category in ipairs(Categories) do
     Sections[category.name] = CreateSection(category.name)
 end
 
--- Características actualizadas (removidas las que no funcionan)
+-- Características actualizadas
 local MovementFeatures = {
     {name = "Fly", callback = ToggleFly},
     {name = "Speed", callback = ToggleSpeed, slider = true, min = 16, max = 200, default = 16},
@@ -1540,7 +1960,6 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
-    {name = "WallRun", callback = WallRun},
     {name = "Levitation", callback = Levitation}
 }
 
@@ -1560,7 +1979,8 @@ local VisualFeatures = {
     {name = "ESP", callback = ESP},
     {name = "Chams", callback = Chams},
     {name = "Tracers", callback = Tracers},
-    {name = "Fullbright", callback = Fullbright}
+    {name = "Fullbright", callback = Fullbright},
+    {name = "ShowHealth", callback = ShowHealth} // Nueva característica para mostrar la vida
 }
 
 local PlayerFeatures = {
@@ -1819,6 +2239,8 @@ local function SetupRespawnPersistence()
                     Tracers(true)
                 elseif feature == "Fullbright" then
                     Fullbright(true)
+                elseif feature == "ShowHealth" then
+                    ShowHealth(true)
                 elseif feature == "Levitation" then
                     Levitation(true)
                 elseif feature == "Telekinesis" then
@@ -1862,3 +2284,4 @@ print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimens
 print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
 print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
 print("El ESP ha sido corregido y el AutoAim mejorado para solo apuntar a jugadores visibles y vivos.")
+print("Se ha añadido la función para mostrar la vida de los jugadores y su porcentaje.")
