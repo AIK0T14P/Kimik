@@ -128,11 +128,13 @@ local LoadingGui = Instance.new("ScreenGui")
 LoadingGui.Name = "LoadingGui"
 LoadingGui.ResetOnSpawn = false
 LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LoadingGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
 LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
 LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LoadingFrame.ZIndex = 10000 -- Valor muy alto para estar por encima de todo
 LoadingFrame.Parent = LoadingGui
 
 local LoadingBar = Instance.new("Frame")
@@ -140,12 +142,14 @@ LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
 LoadingBar.Position = UDim2.new(0.3, 0, 0.5, 0)
 LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadingBar.BorderSizePixel = 0
+LoadingBar.ZIndex = 10001
 LoadingBar.Parent = LoadingFrame
 
 local LoadingFill = Instance.new("Frame")
 LoadingFill.Size = UDim2.new(0, 0, 1, 0)
 LoadingFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
 LoadingFill.BorderSizePixel = 0
+LoadingFill.ZIndex = 10002
 LoadingFill.Parent = LoadingBar
 
 local LoadingText = Instance.new("TextLabel")
@@ -156,6 +160,7 @@ LoadingText.Font = Enum.Font.GothamBold
 LoadingText.Text = Texts.loading
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadingText.TextSize = 18
+LoadingText.ZIndex = 10003
 LoadingText.Parent = LoadingFrame
 
 -- Animación de carga
@@ -168,9 +173,10 @@ local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "EnhancedGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Botón para mostrar/ocultar (ahora con arrastre)
+-- Botón para mostrar/ocultar (ahora con arrastre y por encima de todo)
 local ToggleButton = Instance.new("ImageButton")
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(1, -60, 0, 10)
@@ -179,7 +185,7 @@ ToggleButton.Image = "rbxassetid://3926305904"
 ToggleButton.ImageRectOffset = Vector2.new(764, 244)
 ToggleButton.ImageRectSize = Vector2.new(36, 36)
 ToggleButton.Parent = ScreenGui
-ToggleButton.ZIndex = 100
+ToggleButton.ZIndex = 10000 -- Valor extremadamente alto para estar por encima de todo
 
 local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(1, 0)
@@ -194,7 +200,7 @@ MainBorder.BackgroundColor3 = Color3.fromRGB(157, 122, 229)
 MainBorder.BorderSizePixel = 0
 MainBorder.Visible = false
 MainBorder.Parent = ScreenGui
-MainBorder.ZIndex = 10
+MainBorder.ZIndex = 9000 -- Alto pero menor que el botón
 
 -- Añadir gradiente al borde
 local UIGradient = Instance.new("UIGradient")
@@ -219,7 +225,7 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = MainBorder
-MainFrame.ZIndex = 11
+MainFrame.ZIndex = 9001
 
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 10)
@@ -235,7 +241,7 @@ Title.Text = "Kimiko HUD Beta"
 Title.TextColor3 = Color3.fromRGB(147, 112, 219)
 Title.TextSize = 24
 Title.Parent = MainFrame
-Title.ZIndex = 12
+Title.ZIndex = 9002
 
 -- Botón de redimensionamiento (mejorado)
 local ResizeButton = Instance.new("TextButton")
@@ -248,7 +254,7 @@ ResizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ResizeButton.TextSize = 24
 ResizeButton.Font = Enum.Font.SourceSansBold
 ResizeButton.Parent = MainFrame
-ResizeButton.ZIndex = 12
+ResizeButton.ZIndex = 9003
 
 local ResizeCorner = Instance.new("UICorner")
 ResizeCorner.CornerRadius = UDim.new(0, 6)
@@ -388,7 +394,7 @@ Sidebar.BorderSizePixel = 0
 Sidebar.ScrollBarThickness = 4
 Sidebar.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
 Sidebar.Parent = MainFrame
-Sidebar.ZIndex = 12
+Sidebar.ZIndex = 9004
 
 -- Contenedor principal con scroll
 local ContentFrame = Instance.new("ScrollingFrame")
@@ -401,7 +407,7 @@ ContentFrame.BorderSizePixel = 0
 ContentFrame.ScrollBarThickness = 6
 ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
 ContentFrame.Parent = MainFrame
-ContentFrame.ZIndex = 12
+ContentFrame.ZIndex = 9004
 
 -- Función para crear categorías en el sidebar
 local function CreateCategory(name, icon, position)
@@ -414,7 +420,7 @@ local function CreateCategory(name, icon, position)
     CategoryButton.Font = Enum.Font.GothamSemibold
     CategoryButton.TextSize = 14
     CategoryButton.Parent = Sidebar
-    CategoryButton.ZIndex = 13
+    CategoryButton.ZIndex = 9005
     
     local IconImage = Instance.new("ImageLabel")
     IconImage.Size = UDim2.new(0, 20, 0, 20)
@@ -422,7 +428,7 @@ local function CreateCategory(name, icon, position)
     IconImage.BackgroundTransparency = 1
     IconImage.Image = icon
     IconImage.Parent = CategoryButton
-    IconImage.ZIndex = 14
+    IconImage.ZIndex = 9006
     
     CategoryButton.Text = Texts.categories[name]
     CategoryButton.TextXAlignment = Enum.TextXAlignment.Left
@@ -452,7 +458,7 @@ local function CreateSection(name)
     Section.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
     Section.Visible = false
     Section.Parent = ContentFrame
-    Section.ZIndex = 13
+    Section.ZIndex = 9005
     
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -473,7 +479,7 @@ local function CreateToggle(name, section, callback)
     ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
     ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     ToggleFrame.Parent = section
-    ToggleFrame.ZIndex = 14
+    ToggleFrame.ZIndex = 9006
     
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
@@ -489,7 +495,7 @@ local function CreateToggle(name, section, callback)
     Label.TextSize = 14
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = ToggleFrame
-    Label.ZIndex = 15
+    Label.ZIndex = 9007
     
     local Switch = Instance.new("TextButton")
     Switch.Size = UDim2.new(0, 40, 0, 20)
@@ -498,7 +504,7 @@ local function CreateToggle(name, section, callback)
     Switch.BorderSizePixel = 0
     Switch.Text = ""
     Switch.Parent = ToggleFrame
-    Switch.ZIndex = 15
+    Switch.ZIndex = 9007
     
     local SwitchCorner = Instance.new("UICorner")
     SwitchCorner.CornerRadius = UDim.new(1, 0)
@@ -509,7 +515,7 @@ local function CreateToggle(name, section, callback)
     Circle.Position = UDim2.new(0, 2, 0.5, -8)
     Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     Circle.Parent = Switch
-    Circle.ZIndex = 16
+    Circle.ZIndex = 9008
     
     local CircleCorner = Instance.new("UICorner")
     CircleCorner.CornerRadius = UDim.new(1, 0)
@@ -565,7 +571,7 @@ local function CreateSlider(name, section, callback, min, max, default)
     SliderFrame.Size = UDim2.new(1, 0, 0, 60)
     SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     SliderFrame.Parent = section
-    SliderFrame.ZIndex = 14
+    SliderFrame.ZIndex = 9006
     
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
@@ -581,7 +587,7 @@ local function CreateSlider(name, section, callback, min, max, default)
     Label.TextSize = 14
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = SliderFrame
-    Label.ZIndex = 15
+    Label.ZIndex = 9007
     
     local SliderBar = Instance.new("TextButton")
     SliderBar.Name = "SliderBar"
@@ -592,7 +598,7 @@ local function CreateSlider(name, section, callback, min, max, default)
     SliderBar.AutoButtonColor = false
     SliderBar.Text = ""
     SliderBar.Parent = SliderFrame
-    SliderBar.ZIndex = 15
+    SliderBar.ZIndex = 9007
     
     local SliderCorner = Instance.new("UICorner")
     SliderCorner.CornerRadius = UDim.new(1, 0)
@@ -603,7 +609,7 @@ local function CreateSlider(name, section, callback, min, max, default)
     SliderFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
     SliderFill.BorderSizePixel = 0
     SliderFill.Parent = SliderBar
-    SliderFill.ZIndex = 16
+    SliderFill.ZIndex = 9008
     
     local SliderFillCorner = Instance.new("UICorner")
     SliderFillCorner.CornerRadius = UDim.new(1, 0)
@@ -1091,6 +1097,7 @@ local function ESP(enabled)
             highlight.FillTransparency = 0.5
             highlight.OutlineTransparency = 0
             highlight.Parent = ESPFolder
+            highlight.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
             return highlight
         end
         
@@ -1101,6 +1108,7 @@ local function ESP(enabled)
             billboardGui.StudsOffset = Vector3.new(0, 3, 0)
             billboardGui.AlwaysOnTop = true
             billboardGui.Parent = ESPFolder
+            billboardGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
             
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -1111,6 +1119,7 @@ local function ESP(enabled)
             nameLabel.Font = Enum.Font.SourceSansBold
             nameLabel.TextScaled = true
             nameLabel.Parent = billboardGui
+            nameLabel.ZIndex = 9501 -- Alto ZIndex para estar por encima de todo
             
             return billboardGui, nameLabel
         end
@@ -1194,7 +1203,7 @@ local function Chams(enabled)
             chamPart.Name = player.Name .. "Cham"
             chamPart.Adornee = part
             chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 5
+            chamPart.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
             chamPart.Size = part.Size
             chamPart.Transparency = 0.5
             chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
@@ -1611,6 +1620,28 @@ local function SetupRespawnPersistence()
         Humanoid = Character:WaitForChild("Humanoid")
         HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
         
+        -- Asegurar que la interfaz siga estando por encima de todo después de reaparecer
+        if ScreenGui then
+            ScreenGui.DisplayOrder = 9999
+            
+            -- Asegurar que el botón de toggle siga por encima de todo
+            if ToggleButton then
+                ToggleButton.ZIndex = 10000
+            end
+            
+            -- Asegurar que la interfaz principal siga por encima de todo
+            if MainBorder then
+                MainBorder.ZIndex = 9000
+                MainFrame.ZIndex = 9001
+                -- Actualizar ZIndex de todos los elementos hijos
+                for _, child in pairs(MainFrame:GetDescendants()) do
+                    if child:IsA("GuiObject") and child.ZIndex < 9000 then
+                        child.ZIndex = child.ZIndex + 9000
+                    end
+                end
+            end
+        end
+        
         -- Reactivar funciones habilitadas después del respawn
         for feature, value in pairs(EnabledFeatures) do
             if value then
@@ -1675,7 +1706,23 @@ ShowSection("Movement")
 -- Aplicar transparencia inicial
 UITransparency(10)
 
+-- Asegurar que la interfaz siempre esté por encima de todo
+RunService.RenderStepped:Connect(function()
+    if ScreenGui then
+        -- Verificar si el DisplayOrder es correcto
+        if ScreenGui.DisplayOrder < 9999 then
+            ScreenGui.DisplayOrder = 9999
+        end
+        
+        -- Verificar si el ZIndex del botón es correcto
+        if ToggleButton and ToggleButton.ZIndex < 10000 then
+            ToggleButton.ZIndex = 10000
+        end
+    end
+end)
+
 -- Mensaje de confirmación
 print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
 print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
+print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
