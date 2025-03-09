@@ -117,7 +117,6 @@ local Languages = {
         loading = "Cargando..."
     },
     ["English"] = {
-        -- ... (English translations)
         categories = {
             Movement = "Movement",
             Combat = "Combat",
@@ -1455,6 +1454,7 @@ local function ShowHealth(enabled)
                     healthGui.Parent = healthFolder
                     
                     local healthFrame = Instance.new("Frame")
+                    healthFrame.Name = "HealthFrame"
                     healthFrame.Size = UDim2.new(1, 0, 0.5, 0)
                     healthFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
                     healthFrame.BorderSizePixel = 0
@@ -1980,7 +1980,7 @@ local VisualFeatures = {
     {name = "Chams", callback = Chams},
     {name = "Tracers", callback = Tracers},
     {name = "Fullbright", callback = Fullbright},
-    {name = "ShowHealth", callback = ShowHealth} // Nueva característica para mostrar la vida
+    {name = "ShowHealth", callback = ShowHealth} -- Nueva característica para mostrar la vida
 }
 
 local PlayerFeatures = {
