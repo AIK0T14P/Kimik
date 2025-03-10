@@ -113,37 +113,63 @@ local Languages = {
             RapidMelee = "Ataque Cuerpo a Cuerpo Rápido",
             UITransparency = "Transparencia de Interfaz"
         },
-        loading = "Cargando..."
+        loading = "Cargando...",
+        welcome = "Bienvenido a Kimiko HUD",
+        version = "Versión 1.0"
     },
     ["English"] = {
-        -- ... (English translations)
+        -- English translations would go here
     }
 }
 
 local CurrentLanguage = "Español"
 local Texts = Languages[CurrentLanguage]
 
--- Crear pantalla de carga
+-- Crear pantalla de carga con animación mejorada
 local LoadingGui = Instance.new("ScreenGui")
 LoadingGui.Name = "LoadingGui"
 LoadingGui.ResetOnSpawn = false
 LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LoadingGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
+LoadingGui.DisplayOrder = 9999
 LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-LoadingFrame.ZIndex = 10000 -- Valor muy alto para estar por encima de todo
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+LoadingFrame.ZIndex = 10000
 LoadingFrame.Parent = LoadingGui
 
+-- Logo animado
+local LogoContainer = Instance.new("Frame")
+LogoContainer.Size = UDim2.new(0, 200, 0, 200)
+LogoContainer.Position = UDim2.new(0.5, -100, 0.4, -100)
+LogoContainer.BackgroundTransparency = 1
+LogoContainer.ZIndex = 10001
+LogoContainer.Parent = LoadingFrame
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 120, 0, 120)
+Logo.Position = UDim2.new(0.5, -60, 0.5, -60)
+Logo.BackgroundTransparency = 1
+Logo.Image = "rbxassetid://6031251532" -- Placeholder logo, replace with your own
+Logo.ImageColor3 = Color3.fromRGB(147, 112, 219)
+Logo.ZIndex = 10002
+Logo.Parent = LogoContainer
+
+-- Animación del logo
+TweenService:Create(Logo, TweenInfo.new(2, Enum.EasingStyle.Elastic), {Size = UDim2.new(0, 150, 0, 150), Position = UDim2.new(0.5, -75, 0.5, -75)}):Play()
+
 local LoadingBar = Instance.new("Frame")
-LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
-LoadingBar.Position = UDim2.new(0.3, 0, 0.5, 0)
-LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+LoadingBar.Size = UDim2.new(0.4, 0, 0.01, 0)
+LoadingBar.Position = UDim2.new(0.3, 0, 0.6, 0)
+LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 LoadingBar.BorderSizePixel = 0
 LoadingBar.ZIndex = 10001
 LoadingBar.Parent = LoadingFrame
+
+local LoadingBarCorner = Instance.new("UICorner")
+LoadingBarCorner.CornerRadius = UDim.new(1, 0)
+LoadingBarCorner.Parent = LoadingBar
 
 local LoadingFill = Instance.new("Frame")
 LoadingFill.Size = UDim2.new(0, 0, 1, 0)
@@ -152,9 +178,13 @@ LoadingFill.BorderSizePixel = 0
 LoadingFill.ZIndex = 10002
 LoadingFill.Parent = LoadingBar
 
+local LoadingFillCorner = Instance.new("UICorner")
+LoadingFillCorner.CornerRadius = UDim.new(1, 0)
+LoadingFillCorner.Parent = LoadingFill
+
 local LoadingText = Instance.new("TextLabel")
 LoadingText.Size = UDim2.new(0, 200, 0, 30)
-LoadingText.Position = UDim2.new(0.5, -100, 0.45, -15)
+LoadingText.Position = UDim2.new(0.5, -100, 0.65, -15)
 LoadingText.BackgroundTransparency = 1
 LoadingText.Font = Enum.Font.GothamBold
 LoadingText.Text = Texts.loading
@@ -163,20 +193,59 @@ LoadingText.TextSize = 18
 LoadingText.ZIndex = 10003
 LoadingText.Parent = LoadingFrame
 
--- Animación de carga
-local loadingTween = TweenService:Create(LoadingFill, TweenInfo.new(3), {Size = UDim2.new(1, 0, 1, 0)})
+local WelcomeText = Instance.new("TextLabel")
+WelcomeText.Size = UDim2.new(0, 300, 0, 40)
+WelcomeText.Position = UDim2.new(0.5, -150, 0.3, -20)
+WelcomeText.BackgroundTransparency = 1
+WelcomeText.Font = Enum.Font.GothamBlack
+WelcomeText.Text = Texts.welcome
+WelcomeText.TextColor3 = Color3.fromRGB(147, 112, 219)
+WelcomeText.TextSize = 28
+WelcomeText.ZIndex = 10003
+WelcomeText.Parent = LoadingFrame
+WelcomeText.TextTransparency = 1
+
+local VersionText = Instance.new("TextLabel")
+VersionText.Size = UDim2.new(0, 200, 0, 20)
+VersionText.Position = UDim2.new(0.5, -100, 0.34, 0)
+VersionText.BackgroundTransparency = 1
+VersionText.Font = Enum.Font.Gotham
+VersionText.Text = Texts.version
+VersionText.TextColor3 = Color3.fromRGB(200, 200, 200)
+VersionText.TextSize = 14
+VersionText.ZIndex = 10003
+VersionText.Parent = LoadingFrame
+VersionText.TextTransparency = 1
+
+-- Animación de texto de bienvenida
+TweenService:Create(WelcomeText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+TweenService:Create(VersionText, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.3), {TextTransparency = 0}):Play()
+
+-- Animación de carga con efecto de pulso
+local loadingTween = TweenService:Create(LoadingFill, TweenInfo.new(2.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)})
 loadingTween:Play()
+
+-- Efecto de pulso en el logo
+spawn(function()
+    while LoadingGui.Parent do
+        TweenService:Create(Logo, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.2}):Play()
+        wait(1.5)
+        TweenService:Create(Logo, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0}):Play()
+        wait(1.5)
+    end
+end)
+
 loadingTween.Completed:Wait()
 
--- GUI Principal
+-- GUI Principal con diseño mejorado
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "EnhancedGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
+ScreenGui.DisplayOrder = 9999
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Botón para mostrar/ocultar (ahora con arrastre y por encima de todo)
+-- Botón para mostrar/ocultar con diseño mejorado
 local ToggleButton = Instance.new("ImageButton")
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(1, -60, 0, 10)
@@ -184,14 +253,49 @@ ToggleButton.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
 ToggleButton.Image = "rbxassetid://3926305904"
 ToggleButton.ImageRectOffset = Vector2.new(764, 244)
 ToggleButton.ImageRectSize = Vector2.new(36, 36)
+ToggleButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.Parent = ScreenGui
-ToggleButton.ZIndex = 10000 -- Valor extremadamente alto para estar por encima de todo
+ToggleButton.ZIndex = 10000
+
+-- Efecto de sombra para el botón
+local ToggleShadow = Instance.new("ImageLabel")
+ToggleShadow.Size = UDim2.new(1.2, 0, 1.2, 0)
+ToggleShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+ToggleShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+ToggleShadow.BackgroundTransparency = 1
+ToggleShadow.Image = "rbxassetid://5554236805"
+ToggleShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+ToggleShadow.ImageTransparency = 0.6
+ToggleShadow.ZIndex = 9999
+ToggleShadow.Parent = ToggleButton
 
 local ToggleCorner = Instance.new("UICorner")
 ToggleCorner.CornerRadius = UDim.new(1, 0)
 ToggleCorner.Parent = ToggleButton
 
--- Frame Principal con borde morado y gradiente
+-- Efecto de brillo para el botón
+local ToggleGlow = Instance.new("ImageLabel")
+ToggleGlow.Size = UDim2.new(1.5, 0, 1.5, 0)
+ToggleGlow.Position = UDim2.new(0.5, 0, 0.5, 0)
+ToggleGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+ToggleGlow.BackgroundTransparency = 1
+ToggleGlow.Image = "rbxassetid://5554236805"
+ToggleGlow.ImageColor3 = Color3.fromRGB(147, 112, 219)
+ToggleGlow.ImageTransparency = 0.7
+ToggleGlow.ZIndex = 9998
+ToggleGlow.Parent = ToggleButton
+
+-- Animación de brillo
+spawn(function()
+    while ToggleButton.Parent do
+        TweenService:Create(ToggleGlow, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.9, Size = UDim2.new(1.7, 0, 1.7, 0)}):Play()
+        wait(2)
+        TweenService:Create(ToggleGlow, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.7, Size = UDim2.new(1.5, 0, 1.5, 0)}):Play()
+        wait(2)
+    end
+end)
+
+-- Frame Principal con borde de cristal y gradiente
 local MainBorder = Instance.new("Frame")
 MainBorder.Name = "MainBorder"
 MainBorder.Size = UDim2.new(0, 600, 0, 400)
@@ -200,15 +304,32 @@ MainBorder.BackgroundColor3 = Color3.fromRGB(157, 122, 229)
 MainBorder.BorderSizePixel = 0
 MainBorder.Visible = false
 MainBorder.Parent = ScreenGui
-MainBorder.ZIndex = 9000 -- Alto pero menor que el botón
+MainBorder.ZIndex = 9000
 
--- Añadir gradiente al borde
+-- Efecto de sombra para el panel principal
+local MainShadow = Instance.new("ImageLabel")
+MainShadow.Size = UDim2.new(1.05, 0, 1.05, 0)
+MainShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+MainShadow.BackgroundTransparency = 1
+MainShadow.Image = "rbxassetid://5554236805"
+MainShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+MainShadow.ImageTransparency = 0.5
+MainShadow.ZIndex = 8999
+MainShadow.Parent = MainBorder
+
+-- Añadir gradiente al borde con efecto de cristal
 local UIGradient = Instance.new("UIGradient")
-UIGradient.Rotation = 90
+UIGradient.Rotation = 45
+UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 145, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(157, 122, 229)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(130, 100, 200))
+})
 UIGradient.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0),
-    NumberSequenceKeypoint.new(0.8, 0),
-    NumberSequenceKeypoint.new(1, 1)
+    NumberSequenceKeypoint.new(0, 0.1),
+    NumberSequenceKeypoint.new(0.5, 0.2),
+    NumberSequenceKeypoint.new(1, 0.1)
 })
 UIGradient.Parent = MainBorder
 
@@ -216,217 +337,203 @@ local MainBorderCorner = Instance.new("UICorner")
 MainBorderCorner.CornerRadius = UDim.new(0, 12)
 MainBorderCorner.Parent = MainBorder
 
--- Frame Principal
+-- Frame Principal con efecto de vidrio
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(1, -4, 1, -4)
 MainFrame.Position = UDim2.new(0, 2, 0, 2)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = MainBorder
 MainFrame.ZIndex = 9001
 
+-- Efecto de vidrio/blur
+local BlurEffect = Instance.new("ImageLabel")
+BlurEffect.Size = UDim2.new(1, 0, 1, 0)
+BlurEffect.BackgroundTransparency = 1
+BlurEffect.Image = "rbxassetid://5553946656"
+BlurEffect.ImageTransparency = 0.7
+BlurEffect.ImageColor3 = Color3.fromRGB(0, 0, 0)
+BlurEffect.ScaleType = Enum.ScaleType.Tile
+BlurEffect.TileSize = UDim2.new(0, 200, 0, 200)
+BlurEffect.ZIndex = 9000
+BlurEffect.Parent = MainFrame
+
 local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = MainFrame
 
--- Título "Kimiko HUD Beta"
+-- Título "Kimiko HUD" con diseño mejorado
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+TitleBar.BackgroundTransparency = 0.2
+TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 9002
+TitleBar.Parent = MainFrame
+
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 10)
+TitleBarCorner.Parent = TitleBar
+
+-- Cortar la parte inferior del TitleBar para que se vea integrado
+local TitleBarCover = Instance.new("Frame")
+TitleBarCover.Size = UDim2.new(1, 0, 0, 10)
+TitleBarCover.Position = UDim2.new(0, 0, 1, -10)
+TitleBarCover.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+TitleBarCover.BackgroundTransparency = 0.2
+TitleBarCover.BorderSizePixel = 0
+TitleBarCover.ZIndex = 9002
+TitleBarCover.Parent = TitleBar
+
+-- Logo en el título
+local TitleLogo = Instance.new("ImageLabel")
+TitleLogo.Size = UDim2.new(0, 24, 0, 24)
+TitleLogo.Position = UDim2.new(0, 10, 0.5, -12)
+TitleLogo.BackgroundTransparency = 1
+TitleLogo.Image = "rbxassetid://6031251532" -- Placeholder logo
+TitleLogo.ImageColor3 = Color3.fromRGB(147, 112, 219)
+TitleLogo.ZIndex = 9003
+TitleLogo.Parent = TitleBar
+
 local Title = Instance.new("TextButton")
-Title.Size = UDim2.new(1, -50, 0, 40)
-Title.Position = UDim2.new(0, 0, 0, 10)
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.Position = UDim2.new(0, 40, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Kimiko HUD Beta"
-Title.TextColor3 = Color3.fromRGB(147, 112, 219)
-Title.TextSize = 24
-Title.Parent = MainFrame
-Title.ZIndex = 9002
+Title.Text = "Kimiko HUD"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+Title.ZIndex = 9003
 
--- Botón de redimensionamiento (mejorado)
-local ResizeButton = Instance.new("TextButton")
-ResizeButton.Size = UDim2.new(0, 30, 0, 30)
-ResizeButton.Position = UDim2.new(1, -35, 1, -35)
+-- Subtítulo con versión
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Size = UDim2.new(0, 100, 0, 20)
+Subtitle.Position = UDim2.new(0, 130, 0.5, -10)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.Text = "BETA"
+Subtitle.TextColor3 = Color3.fromRGB(147, 112, 219)
+Subtitle.TextSize = 12
+Subtitle.ZIndex = 9003
+Subtitle.Parent = TitleBar
+
+-- Botones de control en la barra de título
+local CloseButton = Instance.new("ImageButton")
+CloseButton.Size = UDim2.new(0, 24, 0, 24)
+CloseButton.Position = UDim2.new(1, -30, 0.5, -12)
+CloseButton.BackgroundTransparency = 1
+CloseButton.Image = "rbxassetid://3926305904"
+CloseButton.ImageRectOffset = Vector2.new(284, 4)
+CloseButton.ImageRectSize = Vector2.new(24, 24)
+CloseButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.ZIndex = 9003
+CloseButton.Parent = TitleBar
+
+local MinimizeButton = Instance.new("ImageButton")
+MinimizeButton.Size = UDim2.new(0, 24, 0, 24)
+MinimizeButton.Position = UDim2.new(1, -60, 0.5, -12)
+MinimizeButton.BackgroundTransparency = 1
+MinimizeButton.Image = "rbxassetid://3926307971"
+MinimizeButton.ImageRectOffset = Vector2.new(884, 284)
+MinimizeButton.ImageRectSize = Vector2.new(36, 36)
+MinimizeButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.ZIndex = 9003
+MinimizeButton.Parent = TitleBar
+
+-- Botón de redimensionamiento mejorado
+local ResizeButton = Instance.new("ImageButton")
+ResizeButton.Size = UDim2.new(0, 20, 0, 20)
+ResizeButton.Position = UDim2.new(1, -25, 1, -25)
 ResizeButton.BackgroundTransparency = 0.5
 ResizeButton.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
-ResizeButton.Text = "⤡"
-ResizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ResizeButton.TextSize = 24
-ResizeButton.Font = Enum.Font.SourceSansBold
+ResizeButton.Image = "rbxassetid://3926305904"
+ResizeButton.ImageRectOffset = Vector2.new(564, 284)
+ResizeButton.ImageRectSize = Vector2.new(36, 36)
+ResizeButton.ImageColor3 = Color3.fromRGB(255, 255, 255)
 ResizeButton.Parent = MainFrame
 ResizeButton.ZIndex = 9003
 
 local ResizeCorner = Instance.new("UICorner")
-ResizeCorner.CornerRadius = UDim.new(0, 6)
+ResizeCorner.CornerRadius = UDim.new(0, 4)
 ResizeCorner.Parent = ResizeButton
 
--- Sistema de arrastre para el botón de toggle
-local function UpdateToggleDrag(input)
-    if ToggleDragging then
-        local delta = input.Position - ToggleDragStart
-        ToggleButton.Position = UDim2.new(
-            ToggleStartPos.X.Scale,
-            ToggleStartPos.X.Offset + delta.X,
-            ToggleStartPos.Y.Scale,
-            ToggleStartPos.Y.Offset + delta.Y
-        )
-    end
-end
-
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        -- Iniciar un temporizador para determinar si es un clic o un arrastre
-        local startTime = tick()
-        local startPosition = input.Position
-        
-        ToggleDragging = false
-        ToggleDragStart = input.Position
-        ToggleStartPos = ToggleButton.Position
-        
-        local connection
-        connection = input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                connection:Disconnect()
-                
-                -- Si el tiempo es corto y la posición no cambió mucho, es un clic
-                if tick() - startTime < 0.3 and (input.Position - startPosition).Magnitude < 5 then
-                    -- Acción de clic: mostrar/ocultar el menú
-                    MainBorder.Visible = not MainBorder.Visible
-                    local goal = {
-                        Rotation = MainBorder.Visible and 180 or 0
-                    }
-                    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {Rotation = goal.Rotation}):Play()
-                end
-                
-                ToggleDragging = false
-            elseif (input.Position - startPosition).Magnitude > 5 then
-                -- Si el movimiento es significativo, es un arrastre
-                ToggleDragging = true
-                UpdateToggleDrag(input)
-            end
-        end)
-    end
-end)
-
-ToggleButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        UpdateToggleDrag(input)
-    end
-end)
-
--- Sistema de arrastre para el menú principal
-local function UpdateDrag(input)
-    if Dragging then
-        local delta = input.Position - DragStart
-        MainBorder.Position = UDim2.new(
-            StartPos.X.Scale,
-            StartPos.X.Offset + delta.X,
-            StartPos.Y.Scale,
-            StartPos.Y.Offset + delta.Y
-        )
-    end
-end
-
-Title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        Dragging = true
-        DragStart = input.Position
-        StartPos = MainBorder.Position
-    end
-end)
-
-Title.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        UpdateDrag(input)
-    end
-end)
-
-Title.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        Dragging = false
-    end
-end)
-
--- Sistema de redimensionamiento mejorado
-local function UpdateResize(input)
-    if Resizing then
-        local delta = input.Position - ResizeStart
-        local newWidth = math.max(300, StartSize.X.Offset + delta.X)
-        local newHeight = math.max(200, StartSize.Y.Offset + delta.Y)
-        
-        -- Actualizar tamaño del borde
-        MainBorder.Size = UDim2.new(0, newWidth, 0, newHeight)
-        
-        -- Actualizar posición del botón de redimensionamiento
-        ResizeButton.Position = UDim2.new(1, -35, 1, -35)
-    end
-end
-
-ResizeButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        Resizing = true
-        ResizeStart = input.Position
-        StartSize = MainBorder.Size
-        StartPos = MainBorder.Position
-    end
-end)
-
-ResizeButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        UpdateResize(input)
-    end
-end)
-
-ResizeButton.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        Resizing = false
-    end
-end)
-
--- Sidebar con scroll
+-- Sidebar con scroll y diseño mejorado
 local Sidebar = Instance.new("ScrollingFrame")
 Sidebar.Name = "Sidebar"
-Sidebar.Size = UDim2.new(0.25, 0, 1, -60)
-Sidebar.Position = UDim2.new(0, 0, 0, 50)
-Sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Sidebar.BackgroundTransparency = 0.1
+Sidebar.Size = UDim2.new(0.25, 0, 1, -50)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+Sidebar.BackgroundTransparency = 0.2
 Sidebar.BorderSizePixel = 0
-Sidebar.ScrollBarThickness = 4
+Sidebar.ScrollBarThickness = 2
 Sidebar.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
 Sidebar.Parent = MainFrame
 Sidebar.ZIndex = 9004
+Sidebar.CanvasSize = UDim2.new(0, 0, 0, 400) -- Ajustar según el contenido
+
+-- Añadir UIListLayout para organizar categorías automáticamente
+local SidebarList = Instance.new("UIListLayout")
+SidebarList.Padding = UDim.new(0, 5)
+SidebarList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+SidebarList.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarList.Parent = Sidebar
+
+-- Padding para el sidebar
+local SidebarPadding = Instance.new("UIPadding")
+SidebarPadding.PaddingTop = UDim.new(0, 10)
+SidebarPadding.PaddingBottom = UDim.new(0, 10)
+SidebarPadding.Parent = Sidebar
 
 -- Contenedor principal con scroll
 local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(0.75, 0, 1, -60)
-ContentFrame.Position = UDim2.new(0.25, 0, 0, 50)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ContentFrame.BackgroundTransparency = 0.1
+ContentFrame.Size = UDim2.new(0.75, 0, 1, -50)
+ContentFrame.Position = UDim2.new(0.25, 0, 0, 40)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+ContentFrame.BackgroundTransparency = 0.2
 ContentFrame.BorderSizePixel = 0
-ContentFrame.ScrollBarThickness = 6
+ContentFrame.ScrollBarThickness = 4
 ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
 ContentFrame.Parent = MainFrame
 ContentFrame.ZIndex = 9004
 
--- Función para crear categorías en el sidebar
+-- Función para crear categorías en el sidebar con iconos mejorados
 local function CreateCategory(name, icon, position)
     local CategoryButton = Instance.new("TextButton")
     CategoryButton.Name = name.."Category"
     CategoryButton.Size = UDim2.new(1, -20, 0, 40)
-    CategoryButton.Position = UDim2.new(0, 10, 0, position)
-    CategoryButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    CategoryButton.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
     CategoryButton.BorderSizePixel = 0
     CategoryButton.Font = Enum.Font.GothamSemibold
     CategoryButton.TextSize = 14
     CategoryButton.Parent = Sidebar
     CategoryButton.ZIndex = 9005
+    CategoryButton.LayoutOrder = position
+    
+    -- Efecto de hover
+    CategoryButton.MouseEnter:Connect(function()
+        if CategoryButton.BackgroundColor3 ~= Color3.fromRGB(147, 112, 219) then -- Si no está seleccionado
+            TweenService:Create(CategoryButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
+        end
+    end)
+    
+    CategoryButton.MouseLeave:Connect(function()
+        if CategoryButton.BackgroundColor3 ~= Color3.fromRGB(147, 112, 219) then -- Si no está seleccionado
+            TweenService:Create(CategoryButton, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(45, 45, 50)}):Play()
+        end
+    end)
     
     local IconImage = Instance.new("ImageLabel")
     IconImage.Size = UDim2.new(0, 20, 0, 20)
-    IconImage.Position = UDim2.new(0, 2, 0.5, -10)
+    IconImage.Position = UDim2.new(0, 10, 0.5, -10)
     IconImage.BackgroundTransparency = 1
     IconImage.Image = icon
+    IconImage.ImageColor3 = Color3.fromRGB(147, 112, 219)
     IconImage.Parent = CategoryButton
     IconImage.ZIndex = 9006
     
@@ -436,17 +543,32 @@ local function CreateCategory(name, icon, position)
     CategoryButton.AutoButtonColor = false
     
     local TextPadding = Instance.new("UIPadding")
-    TextPadding.PaddingLeft = UDim.new(0, 25)
+    TextPadding.PaddingLeft = UDim.new(0, 40)
     TextPadding.Parent = CategoryButton
     
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
     Corner.Parent = CategoryButton
     
+    -- Indicador de selección
+    local SelectionIndicator = Instance.new("Frame")
+    SelectionIndicator.Name = "SelectionIndicator"
+    SelectionIndicator.Size = UDim2.new(0, 4, 0.7, 0)
+    SelectionIndicator.Position = UDim2.new(0, 0, 0.15, 0)
+    SelectionIndicator.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
+    SelectionIndicator.BorderSizePixel = 0
+    SelectionIndicator.Visible = false
+    SelectionIndicator.ZIndex = 9007
+    SelectionIndicator.Parent = CategoryButton
+    
+    local IndicatorCorner = Instance.new("UICorner")
+    IndicatorCorner.CornerRadius = UDim.new(0, 2)
+    IndicatorCorner.Parent = SelectionIndicator
+    
     return CategoryButton
 end
 
--- Función para crear secciones de contenido
+-- Función para crear secciones de contenido con diseño mejorado
 local function CreateSection(name)
     local Section = Instance.new("ScrollingFrame")
     Section.Name = name.."Section"
@@ -454,7 +576,7 @@ local function CreateSection(name)
     Section.Position = UDim2.new(0, 20, 0, 10)
     Section.BackgroundTransparency = 1
     Section.BorderSizePixel = 0
-    Section.ScrollBarThickness = 6
+    Section.ScrollBarThickness = 4
     Section.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
     Section.Visible = false
     Section.Parent = ContentFrame
@@ -470,40 +592,74 @@ local function CreateSection(name)
         Section.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
     end)
     
+    -- Añadir padding
+    local SectionPadding = Instance.new("UIPadding")
+    SectionPadding.PaddingTop = UDim.new(0, 10)
+    SectionPadding.PaddingBottom = UDim.new(0, 10)
+    SectionPadding.Parent = Section
+    
     return Section
 end
 
--- Función mejorada para crear botones de toggle
+-- Función mejorada para crear botones de toggle con animaciones
 local function CreateToggle(name, section, callback)
     local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Size = UDim2.new(1, 0, 0, 40)
-    ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 50)
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     ToggleFrame.Parent = section
     ToggleFrame.ZIndex = 9006
     
+    -- Efecto de hover
+    ToggleFrame.MouseEnter:Connect(function()
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
+    end)
+    
+    ToggleFrame.MouseLeave:Connect(function()
+        TweenService:Create(ToggleFrame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+    end)
+    
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = ToggleFrame
     
+    -- Añadir sombra
+    local ToggleShadow = Instance.new("ImageLabel")
+    ToggleShadow.Size = UDim2.new(1.02, 0, 1.04, 0)
+    ToggleShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ToggleShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    ToggleShadow.BackgroundTransparency = 1
+    ToggleShadow.Image = "rbxassetid://5554236805"
+    ToggleShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    ToggleShadow.ImageTransparency = 0.8
+    ToggleShadow.ZIndex = 9005
+    ToggleShadow.Parent = ToggleFrame
+    
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -60, 1, 0)
-    Label.Position = UDim2.new(0, 10, 0, 0)
+    Label.Size = UDim2.new(1, -80, 1, 0)
+    Label.Position = UDim2.new(0, 15, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Font = Enum.Font.GothamSemibold
     Label.Text = Texts.features[name]
     Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextSize = 14
+    Label.TextSize = 16
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = ToggleFrame
     Label.ZIndex = 9007
     
+    -- Contenedor del switch para mejor posicionamiento
+    local SwitchContainer = Instance.new("Frame")
+    SwitchContainer.Size = UDim2.new(0, 50, 0, 24)
+    SwitchContainer.Position = UDim2.new(1, -60, 0.5, -12)
+    SwitchContainer.BackgroundTransparency = 1
+    SwitchContainer.Parent = ToggleFrame
+    SwitchContainer.ZIndex = 9007
+    
     local Switch = Instance.new("TextButton")
-    Switch.Size = UDim2.new(0, 40, 0, 20)
-    Switch.Position = UDim2.new(1, -50, 0.5, -10)
-    Switch.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    Switch.Size = UDim2.new(1, 0, 1, 0)
+    Switch.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
     Switch.BorderSizePixel = 0
     Switch.Text = ""
-    Switch.Parent = ToggleFrame
+    Switch.Parent = SwitchContainer
     Switch.ZIndex = 9007
     
     local SwitchCorner = Instance.new("UICorner")
@@ -511,8 +667,8 @@ local function CreateToggle(name, section, callback)
     SwitchCorner.Parent = Switch
     
     local Circle = Instance.new("Frame")
-    Circle.Size = UDim2.new(0, 16, 0, 16)
-    Circle.Position = UDim2.new(0, 2, 0.5, -8)
+    Circle.Size = UDim2.new(0, 18, 0, 18)
+    Circle.Position = UDim2.new(0, 3, 0.5, -9)
     Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     Circle.Parent = Switch
     Circle.ZIndex = 9008
@@ -521,18 +677,50 @@ local function CreateToggle(name, section, callback)
     CircleCorner.CornerRadius = UDim.new(1, 0)
     CircleCorner.Parent = Circle
     
+    -- Añadir efecto de sombra al círculo
+    local CircleShadow = Instance.new("ImageLabel")
+    CircleShadow.Size = UDim2.new(1.2, 0, 1.2, 0)
+    CircleShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    CircleShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    CircleShadow.BackgroundTransparency = 1
+    CircleShadow.Image = "rbxassetid://5554236805"
+    CircleShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    CircleShadow.ImageTransparency = 0.7
+    CircleShadow.ZIndex = 9007
+    CircleShadow.Parent = Circle
+    
     local Enabled = false
     local Connection
     
     local function Toggle()
         Enabled = not Enabled
         EnabledFeatures[name] = Enabled
+        
+        -- Animación mejorada
         local Goal = {
-            BackgroundColor3 = Enabled and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(60, 60, 60),
-            Position = Enabled and UDim2.new(0, 22, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+            BackgroundColor3 = Enabled and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(60, 60, 65),
+            Position = Enabled and UDim2.new(0, 29, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
         }
-        TweenService:Create(Circle, TweenInfo.new(0.2), {Position = Goal.Position}):Play()
-        TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Goal.BackgroundColor3}):Play()
+        
+        TweenService:Create(Circle, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = Goal.Position}):Play()
+        TweenService:Create(Switch, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Goal.BackgroundColor3}):Play()
+        
+        -- Efecto de brillo al activar
+        if Enabled then
+            local Glow = Instance.new("ImageLabel")
+            Glow.Size = UDim2.new(1.5, 0, 1.5, 0)
+            Glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+            Glow.AnchorPoint = Vector2.new(0.5, 0.5)
+            Glow.BackgroundTransparency = 1
+            Glow.Image = "rbxassetid://5554236805"
+            Glow.ImageColor3 = Color3.fromRGB(147, 112, 219)
+            Glow.ImageTransparency = 0
+            Glow.ZIndex = 9007
+            Glow.Parent = Circle
+            
+            TweenService:Create(Glow, TweenInfo.new(0.5), {ImageTransparency = 1, Size = UDim2.new(2, 0, 2, 0)}):Play()
+            game.Debris:AddItem(Glow, 0.5)
+        end
         
         -- Desconectar la conexión anterior si existe
         if Connection then
@@ -565,64 +753,128 @@ local function CreateToggle(name, section, callback)
     }
 end
 
--- Función mejorada para crear sliders
+-- Función mejorada para crear sliders con diseño moderno
 local function CreateSlider(name, section, callback, min, max, default)
     local SliderFrame = Instance.new("Frame")
-    SliderFrame.Size = UDim2.new(1, 0, 0, 60)
-    SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    SliderFrame.Size = UDim2.new(1, 0, 0, 70)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     SliderFrame.Parent = section
     SliderFrame.ZIndex = 9006
     
+    -- Efecto de hover
+    SliderFrame.MouseEnter:Connect(function()
+        TweenService:Create(SliderFrame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 60, 65)}):Play()
+    end)
+    
+    SliderFrame.MouseLeave:Connect(function()
+        TweenService:Create(SliderFrame, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+    end)
+    
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = SliderFrame
     
+    -- Añadir sombra
+    local SliderShadow = Instance.new("ImageLabel")
+    SliderShadow.Size = UDim2.new(1.02, 0, 1.04, 0)
+    SliderShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    SliderShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    SliderShadow.BackgroundTransparency = 1
+    SliderShadow.Image = "rbxassetid://5554236805"
+    SliderShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    SliderShadow.ImageTransparency = 0.8
+    SliderShadow.ZIndex = 9005
+    SliderShadow.Parent = SliderFrame
+    
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -20, 0, 20)
-    Label.Position = UDim2.new(0, 10, 0, 5)
+    Label.Size = UDim2.new(1, -20, 0, 25)
+    Label.Position = UDim2.new(0, 15, 0, 10)
     Label.BackgroundTransparency = 1
     Label.Font = Enum.Font.GothamSemibold
-    Label.Text = Texts.features[name] .. ": " .. default
+    Label.Text = Texts.features[name]
     Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextSize = 14
+    Label.TextSize = 16
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Parent = SliderFrame
     Label.ZIndex = 9007
     
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Size = UDim2.new(0, 50, 0, 25)
+    ValueLabel.Position = UDim2.new(1, -60, 0, 10)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Font = Enum.Font.GothamSemibold
+    ValueLabel.Text = tostring(default)
+    ValueLabel.TextColor3 = Color3.fromRGB(147, 112, 219)
+    ValueLabel.TextSize = 16
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Parent = SliderFrame
+    ValueLabel.ZIndex = 9007
+    
+    local SliderContainer = Instance.new("Frame")
+    SliderContainer.Size = UDim2.new(1, -30, 0, 6)
+    SliderContainer.Position = UDim2.new(0, 15, 0, 45)
+    SliderContainer.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    SliderContainer.BorderSizePixel = 0
+    SliderContainer.Parent = SliderFrame
+    SliderContainer.ZIndex = 9007
+    
+    local SliderContainerCorner = Instance.new("UICorner")
+    SliderContainerCorner.CornerRadius = UDim.new(1, 0)
+    SliderContainerCorner.Parent = SliderContainer
+    
     local SliderBar = Instance.new("TextButton")
     SliderBar.Name = "SliderBar"
-    SliderBar.Size = UDim2.new(1, -20, 0, 20)
-    SliderBar.Position = UDim2.new(0, 10, 0, 30)
-    SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    SliderBar.BorderSizePixel = 0
-    SliderBar.AutoButtonColor = false
+    SliderBar.Size = UDim2.new(1, 0, 1, 0)
+    SliderBar.BackgroundTransparency = 1
     SliderBar.Text = ""
-    SliderBar.Parent = SliderFrame
-    SliderBar.ZIndex = 9007
-    
-    local SliderCorner = Instance.new("UICorner")
-    SliderCorner.CornerRadius = UDim.new(1, 0)
-    SliderCorner.Parent = SliderBar
+    SliderBar.Parent = SliderContainer
+    SliderBar.ZIndex = 9008
     
     local SliderFill = Instance.new("Frame")
     SliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
     SliderFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
     SliderFill.BorderSizePixel = 0
-    SliderFill.Parent = SliderBar
+    SliderFill.Parent = SliderContainer
     SliderFill.ZIndex = 9008
     
     local SliderFillCorner = Instance.new("UICorner")
     SliderFillCorner.CornerRadius = UDim.new(1, 0)
     SliderFillCorner.Parent = SliderFill
     
+    -- Círculo deslizante
+    local SliderCircle = Instance.new("Frame")
+    SliderCircle.Size = UDim2.new(0, 16, 0, 16)
+    SliderCircle.Position = UDim2.new((default - min) / (max - min), 0, 0.5, -8)
+    SliderCircle.AnchorPoint = Vector2.new(0.5, 0)
+    SliderCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderCircle.Parent = SliderContainer
+    SliderCircle.ZIndex = 9009
+    
+    local SliderCircleCorner = Instance.new("UICorner")
+    SliderCircleCorner.CornerRadius = UDim.new(1, 0)
+    SliderCircleCorner.Parent = SliderCircle
+    
+    -- Añadir sombra al círculo
+    local CircleShadow = Instance.new("ImageLabel")
+    CircleShadow.Size = UDim2.new(1.5, 0, 1.5, 0)
+    CircleShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    CircleShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    CircleShadow.BackgroundTransparency = 1
+    CircleShadow.Image = "rbxassetid://5554236805"
+    CircleShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    CircleShadow.ImageTransparency = 0.7
+    CircleShadow.ZIndex = 9008
+    CircleShadow.Parent = SliderCircle
+    
     local Value = default
     local Dragging = false
     
     local function UpdateSlider(input)
-        local sizeX = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+        local sizeX = math.clamp((input.Position.X - SliderContainer.AbsolutePosition.X) / SliderContainer.AbsoluteSize.X, 0, 1)
         Value = math.floor(min + ((max - min) * sizeX))
+        ValueLabel.Text = tostring(Value)
         SliderFill.Size = UDim2.new(sizeX, 0, 1, 0)
-        Label.Text = Texts.features[name] .. ": " .. Value
+        SliderCircle.Position = UDim2.new(sizeX, 0, 0.5, -8)
         EnabledFeatures[name] = Value
         callback(Value)
     end
@@ -631,12 +883,18 @@ local function CreateSlider(name, section, callback, min, max, default)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             Dragging = true
             UpdateSlider(input)
+            
+            -- Efecto de agrandamiento al arrastrar
+            TweenService:Create(SliderCircle, TweenInfo.new(0.2), {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(SliderCircle.Position.X.Scale, 0, 0.5, -10)}):Play()
         end
     end)
     
     SliderBar.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             Dragging = false
+            
+            -- Volver al tamaño normal
+            TweenService:Create(SliderCircle, TweenInfo.new(0.2), {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(SliderCircle.Position.X.Scale, 0, 0.5, -8)}):Play()
         end
     end)
     
@@ -651,738 +909,219 @@ local function CreateSlider(name, section, callback, min, max, default)
     end
 end
 
--- Funciones de habilidades mejoradas
-local function ToggleFly(enabled)
-    EnabledFeatures["Fly"] = enabled
-    if enabled then
-        local BG = Instance.new("BodyGyro", HumanoidRootPart)
-        BG.P = 9e4
-        BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BG.CFrame = HumanoidRootPart.CFrame
+-- Sistema de arrastre para el botón de toggle con animación mejorada
+local function UpdateToggleDrag(input)
+    if ToggleDragging then
+        local delta = input.Position - ToggleDragStart
+        local newPosition = UDim2.new(
+            ToggleStartPos.X.Scale,
+            ToggleStartPos.X.Offset + delta.X,
+            ToggleStartPos.Y.Scale,
+            ToggleStartPos.Y.Offset + delta.Y
+        )
         
-        local BV = Instance.new("BodyVelocity", HumanoidRootPart)
-        BV.Velocity = Vector3.new(0, 0.1, 0)
-        BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        -- Limitar la posición dentro de la pantalla
+        local screenSize = workspace.CurrentCamera.ViewportSize
+        local buttonSize = ToggleButton.AbsoluteSize
         
-        RunService:BindToRenderStep("Fly", 100, function()
-            if not enabled then return end
-            
-            BG.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
-            
-            local moveDirection = Vector3.new(
-                UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0),
-                (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
-                UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0)
-            )
-            
-            local cameraCFrame = Camera.CFrame
-            local lookVector = cameraCFrame.LookVector
-            local rightVector = cameraCFrame.RightVector
-            
-            local velocity = (rightVector * moveDirection.X + cameraCFrame.UpVector * moveDirection.Y + lookVector * moveDirection.Z) * 50
-            
-            if velocity.Magnitude > 0 then
-                BV.Velocity = velocity
-            else
-                BV.Velocity = Vector3.new(0, 0.1, 0)
-            end
-        end)
-    else
-        RunService:UnbindFromRenderStep("Fly")
-        for _, v in pairs(HumanoidRootPart:GetChildren()) do
-            if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then
-                v:Destroy()
-            end
-        end
+        newPosition = UDim2.new(
+            newPosition.X.Scale,
+            math.clamp(newPosition.X.Offset, 0, screenSize.X - buttonSize.X),
+            newPosition.Y.Scale,
+            math.clamp(newPosition.Y.Offset, 0, screenSize.Y - buttonSize.Y)
+        )
+        
+        ToggleButton.Position = newPosition
     end
 end
 
-local function ToggleSpeed(value)
-    EnabledFeatures["Speed"] = value
-    Humanoid.WalkSpeed = value
-end
-
-local function ToggleSuperJump(value)
-    EnabledFeatures["SuperJump"] = value
-    Humanoid.JumpPower = value
-    Humanoid.JumpHeight = 7.2
-end
-
-local function InfiniteJump(enabled)
-    EnabledFeatures["InfiniteJump"] = enabled
-    local connection
-    if enabled then
-        connection = UserInputService.JumpRequest:Connect(function()
-            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-    end
-end
-
-local function NoClip(enabled)
-    EnabledFeatures["NoClip"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.Stepped:Connect(function()
-            for _, part in pairs(Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-        for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end
-end
-
-local function Reach(enabled)
-    EnabledFeatures["Reach"] = enabled
-    if enabled then
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local handle = tool:FindFirstChild("Handle")
-                if handle then
-                    local originalSize = handle.Size
-                    handle.Size = originalSize * 2
-                    handle.Massless = true
-                end
-            end
-        end
-    else
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local handle = tool:FindFirstChild("Handle")
-                if handle then
-                    handle.Size = handle.Size / 2
-                    handle.Massless = false
-                end
-            end
-        end
-    end
-end
-
-local function AutoDodge(enabled)
-    EnabledFeatures["AutoDodge"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.Heartbeat:Connect(function()
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local distance = (player.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
-                    if distance <= 10 then
-                        local randomDirection = Vector3.new(math.random(-1, 1), 0, math.random(-1, 1)).Unit
-                        Character.HumanoidRootPart.CFrame = Character.HumanoidRootPart.CFrame + randomDirection * 5
+ToggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- Iniciar un temporizador para determinar si es un clic o un arrastre
+        local startTime = tick()
+        local startPosition = input.Position
+        
+        ToggleDragging = false
+        ToggleDragStart = input.Position
+        ToggleStartPos = ToggleButton.Position
+        
+        -- Efecto de pulsación
+        TweenService:Create(ToggleButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 45, 0, 45)}):Play()
+        
+        local connection
+        connection = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                connection:Disconnect()
+                
+                -- Restaurar tamaño
+                TweenService:Create(ToggleButton, TweenInfo.new(0.1), {Size = UDim2.new(0, 50, 0, 50)}):Play()
+                
+                -- Si el tiempo es corto y la posición no cambió mucho, es un clic
+                if tick() - startTime < 0.3 and (input.Position - startPosition).Magnitude < 5 then
+                    -- Acción de clic: mostrar/ocultar el menú con animación
+                    if MainBorder.Visible then
+                        -- Ocultar con animación
+                        TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+                        wait(0.3)
+                        MainBorder.Visible = false
+                    else
+                        -- Mostrar con animación
+                        MainBorder.Size = UDim2.new(0, 0, 0, 0)
+                        MainBorder.Position = UDim2.new(0.5, 0, 0.5, 0)
+                        MainBorder.Visible = true
+                        TweenService:Create(MainBorder, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 600, 0, 400), Position = UDim2.new(0.5, -300, 0.5, -200)}):Play()
                     end
+                    
+                    -- Animar rotación del botón
+                    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {Rotation = MainBorder.Visible and 180 or 0}):Play()
                 end
+                
+                ToggleDragging = false
+            elseif (input.Position - startPosition).Magnitude > 5 then
+                -- Si el movimiento es significativo, es un arrastre
+                ToggleDragging = true
+                UpdateToggleDrag(input)
             end
         end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
+    end
+end)
+
+ToggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        UpdateToggleDrag(input)
+    end
+end)
+
+-- Sistema de arrastre para el menú principal con animación suave
+local function UpdateDrag(input)
+    if Dragging then
+        local delta = input.Position - DragStart
+        local newPosition = UDim2.new(
+            StartPos.X.Scale,
+            StartPos.X.Offset + delta.X,
+            StartPos.Y.Scale,
+            StartPos.Y.Offset + delta.Y
+        )
+        
+        -- Limitar la posición dentro de la pantalla
+        local screenSize = workspace.CurrentCamera.ViewportSize
+        local frameSize = MainBorder.AbsoluteSize
+        
+        newPosition = UDim2.new(
+            newPosition.X.Scale,
+            math.clamp(newPosition.X.Offset, 0, screenSize.X - frameSize.X),
+            newPosition.Y.Scale,
+            math.clamp(newPosition.Y.Offset, 0, screenSize.Y - frameSize.Y)
+        )
+        
+        MainBorder.Position = newPosition
     end
 end
 
-local function AutoAim(enabled)
-    EnabledFeatures["AutoAim"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.RenderStepped:Connect(function()
-            local closestPlayer = nil
-            local closestDistance = math.huge
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local distance = (player.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
-                    if distance < closestDistance then
-                        closestPlayer = player
-                        closestDistance = distance
-                    end
-                end
-            end
-            if closestPlayer then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.HumanoidRootPart.Position)
-            end
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = input.Position
+        StartPos = MainBorder.Position
+        
+        -- Efecto de agarre
+        TweenService:Create(TitleBar, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+    end
+end)
+
+Title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        UpdateDrag(input)
+    end
+end)
+
+Title.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = false
+        
+        -- Restaurar transparencia
+        TweenService:Create(TitleBar, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+    end
+end)
+
+-- Sistema de redimensionamiento mejorado con animación
+local function UpdateResize(input)
+    if Resizing then
+        local delta = input.Position - ResizeStart
+        local newWidth = math.max(400, StartSize.X.Offset + delta.X)
+        local newHeight = math.max(300, StartSize.Y.Offset + delta.Y)
+        
+        -- Actualizar tamaño del borde con animación suave
+        MainBorder.Size = UDim2.new(0, newWidth, 0, newHeight)
+        
+        -- Actualizar posición del botón de redimensionamiento
+        ResizeButton.Position = UDim2.new(1, -25, 1, -25)
     end
 end
 
-local function DamageMultiplier(enabled)
-    EnabledFeatures["DamageMultiplier"] = enabled
-    if enabled then
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value * 2
-                end
-            end
-        end
-    else
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value / 2
-                end
-            end
-        end
+ResizeButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Resizing = true
+        ResizeStart = input.Position
+        StartSize = MainBorder.Size
+        StartPos = MainBorder.Position
+        
+        -- Efecto visual al iniciar redimensionamiento
+        TweenService:Create(ResizeButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.2, Size = UDim2.new(0, 24, 0, 24)}):Play()
     end
-end
+end)
 
-local function InstantKill(enabled)
-    EnabledFeatures["InstantKill"] = enabled
-    if enabled then
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = 1000000
-                end
-            end
-        end
-    else
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value / 1000000
-                end
-            end
-        end
+ResizeButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        UpdateResize(input)
     end
-end
+end)
 
-local function AutoHeal(enabled)
-    EnabledFeatures["AutoHeal"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.Heartbeat:Connect(function()
-            if Humanoid.Health < Humanoid.MaxHealth then
-                Humanoid.Health = Humanoid.Health + 1
-            end
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
+ResizeButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Resizing = false
+        
+        -- Restaurar apariencia
+        TweenService:Create(ResizeButton, TweenInfo.new(0.2), {BackgroundTransparency = 0.5, Size = UDim2.new(0, 20, 0, 20)}):Play()
     end
-end
+end)
 
-local function BunnyHop(enabled)
-    EnabledFeatures["BunnyHop"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.Heartbeat:Connect(function()
-            if Humanoid:GetState() == Enum.HumanoidStateType.Running then
-                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-    end
-end
+-- Funcionalidad de los botones de la barra de título
+CloseButton.MouseButton1Click:Connect(function()
+    -- Animación de cierre
+    TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+    wait(0.3)
+    MainBorder.Visible = false
+    TweenService:Create(ToggleButton, TweenInfo.new(0.3), {Rotation = 0}):Play()
+end)
 
-local function SpinBot(enabled)
-    EnabledFeatures["SpinBot"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.RenderStepped:Connect(function()
-            Character:SetPrimaryPartCFrame(Character:GetPrimaryPartCFrame() * CFrame.Angles(0, math.rad(10), 0))
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-    end
-end
-
-local function AntiAim(enabled)
-    EnabledFeatures["AntiAim"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.RenderStepped:Connect(function()
-            Character:SetPrimaryPartCFrame(Character:GetPrimaryPartCFrame() * CFrame.Angles(math.rad(math.random(-180, 180)), math.rad(math.random(-180, 180)), math.rad(math.random(-180, 180))))
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-    end
-end
-
--- Función mejorada de HitboxExpander para que persista cuando los jugadores mueren y reaparecen
-local function HitboxExpander(enabled)
-    EnabledFeatures["HitboxExpander"] = enabled
-    
-    -- Función para expandir el hitbox de un jugador
-    local function expandHitbox(player)
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
-            player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
-            player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
-        end
-    end
-    
-    -- Aplicar a todos los jugadores actuales
-    for _, player in pairs(Players:GetPlayers()) do
-        expandHitbox(player)
-    end
-    
-    -- Conexiones para mantener el hitbox expandido
-    local playerAddedConnection
-    local playerRemovingConnection
-    local characterAddedConnections = {}
-    
-    if enabled then
-        -- Cuando se activa, configurar todas las conexiones necesarias
-        
-        -- Para jugadores nuevos que se unen
-        playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-            -- Cuando un jugador se une, configurar la conexión para cuando su personaje aparezca
-            characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
-                task.wait(0.5) -- Pequeña espera para asegurar que el HumanoidRootPart esté cargado
-                expandHitbox(player)
-            end)
-        end)
-        
-        -- Para jugadores existentes cuando reaparecen
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
-                    task.wait(0.5)
-                    expandHitbox(player)
-                end)
-            end
-        end
-        
-        -- Limpiar conexiones cuando un jugador se va
-        playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-            if characterAddedConnections[player] then
-                characterAddedConnections[player]:Disconnect()
-                characterAddedConnections[player] = nil
-            end
-        end)
-        
-        -- Ejecutar periódicamente para asegurar que todos los hitboxes estén expandidos
-        spawn(function()
-            while EnabledFeatures["HitboxExpander"] do
-                for _, player in pairs(Players:GetPlayers()) do
-                    expandHitbox(player)
-                end
-                task.wait(1) -- Verificar cada segundo
-            end
-        end)
-    else
-        -- Cuando se desactiva, limpiar todas las conexiones
-        if playerAddedConnection then
-            playerAddedConnection:Disconnect()
-            playerAddedConnection = nil
-        end
-        
-        if playerRemovingConnection then
-            playerRemovingConnection:Disconnect()
-            playerRemovingConnection = nil
-        end
-        
-        for player, connection in pairs(characterAddedConnections) do
-            connection:Disconnect()
-            characterAddedConnections[player] = nil
-        end
-        
-        -- Restaurar hitboxes normales
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
-                player.Character.HumanoidRootPart.Transparency = 1
-            end
-        end
-    end
-end
-
-local function Levitation(enabled)
-    EnabledFeatures["Levitation"] = enabled
-    local connection
-    if enabled then
-        connection = RunService.Heartbeat:Connect(function()
-            HumanoidRootPart.Velocity = Vector3.new(0, 5, 0)
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-    end
-end
-
-local function Telekinesis(enabled)
-    EnabledFeatures["Telekinesis"] = enabled
-    local mouse = LocalPlayer:GetMouse()
-    local heldObject = nil
-    local connection
-
-    if enabled then
-        connection = mouse.Button1Down:Connect(function()
-            local target = mouse.Target
-            if target and target:IsA("BasePart") and not target:IsDescendantOf(Character) then
-                heldObject = target
-                local bodyPosition = Instance.new("BodyPosition")
-                bodyPosition.Position = heldObject.Position
-                bodyPosition.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bodyPosition.Parent = heldObject
-            end
-        end)
-
-        mouse.Button1Up:Connect(function()
-            if heldObject then
-                heldObject:FindFirstChildOfClass("BodyPosition"):Destroy()
-                heldObject = nil
-            end
-        end)
-
-        RunService.RenderStepped:Connect(function()
-            if heldObject then
-                local bodyPosition = heldObject:FindFirstChildOfClass("BodyPosition")
-                if bodyPosition then
-                    bodyPosition.Position = mouse.Hit.Position
-                end
-            end
-        end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
-        if heldObject and heldObject:FindFirstChildOfClass("BodyPosition") then
-            heldObject:FindFirstChildOfClass("BodyPosition"):Destroy()
-        end
-    end
-end
-
--- Implementación mejorada del ESP con colores de equipo
-local function ESP(enabled)
-    EnabledFeatures["ESP"] = enabled
-    local ESPFolder = Instance.new("Folder")
-    ESPFolder.Name = "ESPFolder"
-    ESPFolder.Parent = game.CoreGui
-    
-    local function getTeamColor(player)
-        if player.Team then
-            return player.Team.TeamColor.Color
-        end
-        return Color3.fromRGB(255, 0, 0) -- Color por defecto si no tiene equipo
-    end
-    
-    local function createESP(player)
-        if player == LocalPlayer then return end
-        
-        local function createBoxHighlight()
-            local highlight = Instance.new("Highlight")
-            highlight.Name = player.Name .. "Highlight"
-            highlight.FillColor = getTeamColor(player)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Parent = ESPFolder
-            return highlight
-        end
-        
-        local function createNameTag()
-            local billboardGui = Instance.new("BillboardGui")
-            billboardGui.Name = player.Name .. "NameTag"
-            billboardGui.Size = UDim2.new(0, 200, 0, 50)
-            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-            billboardGui.AlwaysOnTop = true
-            billboardGui.Parent = ESPFolder
-            
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.new(1, 0, 0, 20)
-            nameLabel.BackgroundTransparency = 1
-            nameLabel.TextColor3 = getTeamColor(player)
-            nameLabel.TextStrokeTransparency = 0
-            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            nameLabel.Font = Enum.Font.SourceSansBold
-            nameLabel.TextScaled = true
-            nameLabel.Parent = billboardGui
-            
-            return billboardGui, nameLabel
-        end
-        
-        local highlight = createBoxHighlight()
-        local nameTag, nameLabel = createNameTag()
-        
-        local function updateESP()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                highlight.Parent = player.Character
-                nameTag.Parent = player.Character.HumanoidRootPart
-                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
-                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-                highlight.FillColor = getTeamColor(player)
-                nameLabel.TextColor3 = getTeamColor(player)
-            end
-        end
-        
-        local connection = RunService.RenderStepped:Connect(updateESP)
-        
-        player.CharacterAdded:Connect(function(char)
-            highlight.Parent = char
-            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
-        end)
-        
-        return {
-            highlight = highlight,
-            nameTag = nameTag,
-            connection = connection
-        }
-    end
-    
-    local espData = {}
-    
-    if enabled then
-        -- Crear ESP para jugadores existentes
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                espData[player] = createESP(player)
-            end
-        end
-        
-        -- Crear ESP para nuevos jugadores
-        Players.PlayerAdded:Connect(function(player)
-            espData[player] = createESP(player)
-        end)
-        
-        -- Limpiar ESP cuando los jugadores salen
-        Players.PlayerRemoving:Connect(function(player)
-            if espData[player] then
-                espData[player].highlight:Destroy()
-                espData[player].nameTag:Destroy()
-                espData[player].connection:Disconnect()
-                espData[player] = nil
-            end
-        end)
-    else
-        -- Limpiar todo el ESP
-        for player, data in pairs(espData) do
-            data.highlight:Destroy()
-            data.nameTag:Destroy()
-            data.connection:Disconnect()
-            espData[player] = nil
-        end
-        ESPFolder:Destroy()
-    end
-end
-
--- Función para Chams
-local function Chams(enabled)
-    EnabledFeatures["Chams"] = enabled
-    local ChamsFolder = Instance.new("Folder")
-    ChamsFolder.Name = "ChamsFolder"
-    ChamsFolder.Parent = game.CoreGui
-
-    local function createChams(player)
-        if player == LocalPlayer then return end
-
-        local function applyChams(part)
-            local chamPart = Instance.new("BoxHandleAdornment")
-            chamPart.Name = player.Name .. "Cham"
-            chamPart.Adornee = part
-            chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
-            chamPart.Size = part.Size
-            chamPart.Transparency = 0.5
-            chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-            chamPart.Parent = ChamsFolder
-            return chamPart
-        end
-
-        local chams = {}
-        local function updateChams()
-            if player.Character then
-                for _, part in pairs(player.Character:GetChildren()) do
-                    if part:IsA("BasePart") and not chams[part] then
-                        chams[part] = applyChams(part)
-                    end
+MinimizeButton.MouseButton1Click:Connect(function()
+    -- Animación de minimizar
+    if MainBorder.Size.Y.Offset > 50 then
+        -- Guardar tamaño actual para restaurar
+        local savedSize = MainBorder.Size
+        TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, MainBorder.Size.X.Offset, 0, 40)}):Play()
+        MinimizeButton.MouseButton1Click = function()
+            TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = savedSize}):Play()
+            MinimizeButton.MouseButton1Click = function()
+                TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, MainBorder.Size.X.Offset, 0, 40)}):Play()
+                MinimizeButton.MouseButton1Click = function()
+                    TweenService:Create(MainBorder, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = savedSize}):Play()
                 end
             end
         end
+end)
 
-        local connection = RunService.RenderStepped:Connect(updateChams)
-
-        player.CharacterAdded:Connect(updateChams)
-
-        return {
-            chams = chams,
-            connection = connection
-        }
-    end
-
-    local chamsData = {}
-
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                chamsData[player] = createChams(player)
-            end
-        end
-
-        Players.PlayerAdded:Connect(function(player)
-            chamsData[player] = createChams(player)
-        end)
-
-        Players.PlayerRemoving:Connect(function(player)
-            if chamsData[player] then
-                for _, cham in pairs(chamsData[player].chams) do
-                    cham:Destroy()
-                end
-                chamsData[player].connection:Disconnect()
-                chamsData[player] = nil
-            end
-        end)
-    else
-        for player, data in pairs(chamsData) do
-            for _, cham in pairs(data.chams) do
-                cham:Destroy()
-            end
-            data.connection:Disconnect()
-            chamsData[player] = nil
-        end
-        ChamsFolder:Destroy()
-    end
-end
-
--- Función para Tracers
-local function Tracers(enabled)
-    EnabledFeatures["Tracers"] = enabled
-    local TracersFolder = Instance.new("Folder")
-    TracersFolder.Name = "TracersFolder"
-    TracersFolder.Parent = game.CoreGui
-
-    local function createTracer(player)
-        if player == LocalPlayer then return end
-
-        local tracer = Drawing.new("Line")
-        tracer.Visible = false
-        tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-        tracer.Thickness = 1
-        tracer.Transparency = 1
-
-        local function updateTracer()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(vector.X, vector.Y)
-                    tracer.Visible = true
-                else
-                    tracer.Visible = false
-                end
-            else
-                tracer.Visible = false
-            end
-        end
-
-        local connection = RunService.RenderStepped:Connect(updateTracer)
-
-        return {
-            tracer = tracer,
-            connection = connection
-        }
-    end
-
-    local tracersData = {}
-
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                tracersData[player] = createTracer(player)
-            end
-        end
-
-        Players.PlayerAdded:Connect(function(player)
-            tracersData[player] = createTracer(player)
-        end)
-
-        Players.PlayerRemoving:Connect(function(player)
-            if tracersData[player] then
-                tracersData[player].tracer:Remove()
-                tracersData[player].connection:Disconnect()
-                tracersData[player] = nil
-            end
-        end)
-    else
-        for player, data in pairs(tracersData) do
-            data.tracer:Remove()
-            data.connection:Disconnect()
-            tracersData[player] = nil
-        end
-        TracersFolder:Destroy()
-    end
-end
-
--- Función para Fullbright
-local function Fullbright(enabled)
-    EnabledFeatures["Fullbright"] = enabled
-    if enabled then
-        game:GetService("Lighting").Brightness = 2
-        game:GetService("Lighting").ClockTime = 14
-        game:GetService("Lighting").FogEnd = 100000
-        game:GetService("Lighting").GlobalShadows = false
-        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    else
-        game:GetService("Lighting").Brightness = 1
-        game:GetService("Lighting").ClockTime = 12
-        game:GetService("Lighting").FogEnd = 10000
-        game:GetService("Lighting").GlobalShadows = true
-        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(127, 127, 127)
-    end
-end
-
--- Función mejorada para controlar la transparencia de la interfaz
-local function UITransparency(value)
-    -- Convertir el valor (0-100) a transparencia (0-1)
-    local transparency = value / 100
-    
-    -- Aplicar transparencia a todos los elementos de la interfaz excepto el borde principal
-    MainFrame.BackgroundTransparency = transparency
-    Sidebar.BackgroundTransparency = transparency
-    ContentFrame.BackgroundTransparency = transparency
-    
-    -- Mantener el borde principal visible (no transparente)
-    MainBorder.BackgroundTransparency = 0
-    
-    -- Aplicar a todos los elementos dentro de las secciones
-    for _, section in pairs(Sections) do
-        for _, child in pairs(section:GetChildren()) do
-            if child:IsA("Frame") then
-                child.BackgroundTransparency = transparency
-            end
-        end
-    end
-end
-
--- Categorías actualizadas
+-- Categorías actualizadas con iconos modernos
 local Categories = {
-    {name = "Movement", icon = "rbxassetid://3926307971"},
-    {name = "Combat", icon = "rbxassetid://3926307971"},
-    {name = "Visuals", icon = "rbxassetid://3926307971"},
-    {name = "Player", icon = "rbxassetid://3926307971"},
-    {name = "World", icon = "rbxassetid://3926307971"},
-    {name = "Optimization", icon = "rbxassetid://3926307971"},
-    {name = "Misc", icon = "rbxassetid://3926307971"},
-    {name = "Settings", icon = "rbxassetid://3926307971"}
+    {name = "Movement", icon = "rbxassetid://7733715400"},
+    {name = "Combat", icon = "rbxassetid://7733774602"},
+    {name = "Visuals", icon = "rbxassetid://7733715400"},
+    {name = "Player", icon = "rbxassetid://7743875962"},
+    {name = "World", icon = "rbxassetid://7733956784"},
+    {name = "Optimization", icon = "rbxassetid://7734053495"},
+    {name = "Misc", icon = "rbxassetid://7734110573"},
+    {name = "Settings", icon = "rbxassetid://7734039100"}
 }
 
 -- Crear categorías y secciones
@@ -1390,7 +1129,7 @@ local Sections = {}
 local ActiveCategory = nil
 
 for i, category in ipairs(Categories) do
-    local button = CreateCategory(category.name, category.icon, (i-1) * 50)
+    local button = CreateCategory(category.name, category.icon, i-1)
     Sections[category.name] = CreateSection(category.name)
 end
 
@@ -1402,7 +1141,6 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
-    {name = "WallRun", callback = WallRun},
     {name = "Levitation", callback = Levitation}
 }
 
@@ -1487,7 +1225,6 @@ local OptimizationFeatures = {
                 end
             end
         else
-            -- Restore original textures (this is a simplified version, you might want to store original textures)
             for _, v in pairs(workspace:GetDescendants()) do
                 if v:IsA("BasePart") and v.Material == Enum.Material.SmoothPlastic then
                     v.Material = Enum.Material.Plastic
@@ -1589,13 +1326,53 @@ for _, feature in ipairs(SettingsFeatures) do
     end
 end
 
--- Manejar la visibilidad de las secciones y mantener el color morado
+-- Manejar la visibilidad de las secciones con animaciones
 local function ShowSection(sectionName)
     for name, section in pairs(Sections) do
-        section.Visible = (name == sectionName)
-        local button = Sidebar:FindFirstChild(name.."Category")
-        if button then
-            button.BackgroundColor3 = (name == sectionName) and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(45, 45, 45)
+        if name == sectionName then
+            if not section.Visible then
+                section.Visible = true
+                section.Position = UDim2.new(0.05, 0, 0, 10)
+                section.Size = UDim2.new(0.9, 0, 1, -20)
+                section.BackgroundTransparency = 1
+                
+                -- Animación de entrada
+                TweenService:Create(section, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, 20, 0, 10)}):Play()
+                
+                -- Mostrar el indicador de selección
+                local button = Sidebar:FindFirstChild(name.."Category")
+                if button then
+                    button.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
+                    button.SelectionIndicator.Visible = true
+                    
+                    -- Animación del indicador
+                    button.SelectionIndicator.Size = UDim2.new(0, 4, 0, 0)
+                    button.SelectionIndicator.Position = UDim2.new(0, 0, 0.5, 0)
+                    TweenService:Create(button.SelectionIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 4, 0.7, 0), Position = UDim2.new(0, 0, 0.15, 0)}):Play()
+                end
+            end
+        else
+            if section.Visible then
+                -- Animación de salida
+                TweenService:Create(section, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.05, 0, 0, 10), BackgroundTransparency = 1}):Play()
+                
+                -- Ocultar después de la animación
+                delay(0.2, function()
+                    section.Visible = false
+                end)
+                
+                -- Ocultar el indicador de selección
+                local button = Sidebar:FindFirstChild(name.."Category")
+                if button then
+                    button.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+                    
+                    -- Animación del indicador
+                    TweenService:Create(button.SelectionIndicator, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 4, 0, 0), Position = UDim2.new(0, 0, 0.5, 0)}):Play()
+                    delay(0.2, function()
+                        button.SelectionIndicator.Visible = false
+                    end)
+                end
+            end
         end
     end
     ActiveCategory = sectionName
@@ -1605,7 +1382,13 @@ for _, category in ipairs(Categories) do
     local button = Sidebar:FindFirstChild(category.name.."Category")
     if button then
         button.MouseButton1Click:Connect(function()
-            ShowSection(category.name)
+            -- Efecto de clic
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(120, 90, 180)}):Play()
+            delay(0.1, function()
+                if ActiveCategory ~= category.name then
+                    ShowSection(category.name)
+                end
+            end)
         end)
     end
 end
@@ -1694,10 +1477,18 @@ end
 -- Llamar a la función de persistencia
 SetupRespawnPersistence()
 
--- Eliminar la GUI de carga
+-- Eliminar la GUI de carga con animación
+TweenService:Create(LoadingFill, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+TweenService:Create(LoadingText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+TweenService:Create(WelcomeText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+TweenService:Create(VersionText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+TweenService:Create(Logo, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+TweenService:Create(LoadingFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+
+wait(0.5)
 LoadingGui:Destroy()
 
--- Mostrar la primera sección por defecto
+-- Mostrar la primera sección por defecto con animación
 ShowSection("Movement")
 
 -- Aplicar transparencia inicial
@@ -1719,7 +1510,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Mensaje de confirmación
-print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
-print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
-print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
-print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
+print("Kimiko HUD mejorado cargado correctamente.")
+print("Interfaz rediseñada con animaciones fluidas y efectos visuales modernos.")
+print("Use el botón flotante para mostrar/ocultar el menú.")
