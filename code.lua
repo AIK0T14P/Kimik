@@ -928,126 +928,88 @@ end
 
 -- OPTIMIZACIÓN: Función mejorada de HitboxExpander para reducir el uso de recursos
 local hitboxCache = {}
-local hitboxUpdateConnection
-local hitboxPlayerAddedConnection
-local hitboxPlayerRemovingConnection
-local hitboxCharacterAddedConnections = {}
+local hitboxConnections = {}
 
 local function HitboxExpander(enabled)
     EnabledFeatures["HitboxExpander"] = enabled
     
-    -- Limpiar todas las conexiones existentes
-    if hitboxUpdateConnection then
-        hitboxUpdateConnection:Disconnect()
-        hitboxUpdateConnection = nil
+    -- Limpiar conexiones existentes
+    for _, connection in pairs(hitboxConnections) do
+        if connection then connection:Disconnect() end
     end
-    
-    if hitboxPlayerAddedConnection then
-        hitboxPlayerAddedConnection:Disconnect()
-        hitboxPlayerAddedConnection = nil
-    end
-    
-    if hitboxPlayerRemovingConnection then
-        hitboxPlayerRemovingConnection:Disconnect()
-        hitboxPlayerRemovingConnection = nil
-    end
-    
-    for player, connection in pairs(hitboxCharacterAddedConnections) do
-        connection:Disconnect()
-        hitboxCharacterAddedConnections[player] = nil
-    end
+    hitboxConnections = {}
     
     -- Función para expandir el hitbox de un jugador
     local function expandHitbox(player)
-        if player == LocalPlayer or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-            return
-        end
+        if player == LocalPlayer or not player.Character then return end
         
-        local hrp = player.Character.HumanoidRootPart
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
         
-        -- Guardar tamaño original si no está en caché
+        -- Usar caché para evitar cambios innecesarios
         if not hitboxCache[player.Name] then
             hitboxCache[player.Name] = {
-                size = hrp.Size,
-                transparency = hrp.Transparency
+                originalSize = hrp.Size,
+                originalTransparency = hrp.Transparency
             }
         end
         
-        -- Aplicar cambios solo si son necesarios (reduce las actualizaciones)
+        -- Aplicar cambios solo si son necesarios
         if enabled then
-            if hrp.Size.X ~= 10 then
-                hrp.Size = Vector3.new(10, 10, 10)
-                hrp.Transparency = 0.5
-                hrp.CanCollide = false
-            end
+            hrp.Size = Vector3.new(10, 10, 10)
+            hrp.Transparency = 0.5
+            hrp.CanCollide = false
         else
-            local original = hitboxCache[player.Name]
-            if original and hrp.Size ~= original.size then
-                hrp.Size = original.size
-                hrp.Transparency = original.transparency
+            -- Restaurar valores originales
+            local cache = hitboxCache[player.Name]
+            if cache then
+                hrp.Size = cache.originalSize
+                hrp.Transparency = cache.originalTransparency
+            else
+                hrp.Size = Vector3.new(2, 2, 1)
+                hrp.Transparency = 1
             end
         end
     end
     
-    -- Restaurar todos los hitboxes a su tamaño original
-    local function restoreAllHitboxes()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local original = hitboxCache[player.Name]
-                if original then
-                    player.Character.HumanoidRootPart.Size = original.size
-                    player.Character.HumanoidRootPart.Transparency = original.transparency
-                end
-            end
-        end
+    -- Aplicar a todos los jugadores actuales
+    for _, player in pairs(Players:GetPlayers()) do
+        expandHitbox(player)
     end
     
     if enabled then
         -- Configurar conexiones solo cuando está habilitado
-        hitboxPlayerAddedConnection = Players.PlayerAdded:Connect(function(player)
-            hitboxCharacterAddedConnections[player] = player.CharacterAdded:Connect(function()
+        hitboxConnections.playerAdded = Players.PlayerAdded:Connect(function(player)
+            hitboxConnections[player.Name] = player.CharacterAdded:Connect(function()
                 task.wait(0.5)
                 expandHitbox(player)
             end)
         end)
         
+        -- Para jugadores existentes cuando reaparecen
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                hitboxCharacterAddedConnections[player] = player.CharacterAdded:Connect(function()
+                hitboxConnections[player.Name] = player.CharacterAdded:Connect(function()
                     task.wait(0.5)
                     expandHitbox(player)
                 end)
-                expandHitbox(player)
             end
         end
         
-        hitboxPlayerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-            if hitboxCharacterAddedConnections[player] then
-                hitboxCharacterAddedConnections[player]:Disconnect()
-                hitboxCharacterAddedConnections[player] = nil
-            end
-            hitboxCache[player.Name] = nil
-        end)
-        
-        -- OPTIMIZACIÓN: Actualizar solo cada 1 segundo en lugar de cada frame
-        hitboxUpdateConnection = RunService.Heartbeat:Connect(function()
-            -- Usar un contador para actualizar solo cada segundo
-            if not getgenv().hitboxUpdateCounter then
-                getgenv().hitboxUpdateCounter = 0
-            end
-            
-            getgenv().hitboxUpdateCounter = getgenv().hitboxUpdateCounter + 1
-            
-            if getgenv().hitboxUpdateCounter >= 60 then  -- Aproximadamente 1 segundo a 60 FPS
-                getgenv().hitboxUpdateCounter = 0
-                
+        -- Verificar periódicamente pero con menos frecuencia (cada 2 segundos en lugar de cada segundo)
+        hitboxConnections.update = task.spawn(function()
+            while EnabledFeatures["HitboxExpander"] do
                 for _, player in pairs(Players:GetPlayers()) do
                     expandHitbox(player)
                 end
+                task.wait(2)
             end
         end)
     else
-        restoreAllHitboxes()
+        -- Restaurar hitboxes normales
+        for _, player in pairs(Players:GetPlayers()) do
+            expandHitbox(player)
+        end
     end
 end
 
@@ -1110,46 +1072,39 @@ end
 
 -- OPTIMIZACIÓN: Implementación mejorada del ESP con mejor rendimiento
 local espFolder
-local espConnections = {}
-local espPlayerData = {}
+local espData = {}
 local espUpdateConnection
 
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
     
-    -- Limpiar conexiones existentes
-    if espUpdateConnection then
-        espUpdateConnection:Disconnect()
-        espUpdateConnection = nil
-    end
-    
-    for _, connection in pairs(espConnections) do
-        connection:Disconnect()
-    end
-    espConnections = {}
-    
-    -- Limpiar elementos visuales
+    -- Limpiar ESP existente
     if espFolder then
         espFolder:Destroy()
         espFolder = nil
     end
     
-    if not enabled then
-        -- Limpiar datos de jugadores
-        for _, data in pairs(espPlayerData) do
-            if data.highlight then data.highlight:Destroy() end
-            if data.nameTag then data.nameTag:Destroy() end
-        end
-        espPlayerData = {}
-        return
+    -- Desconectar la actualización anterior
+    if espUpdateConnection then
+        espUpdateConnection:Disconnect()
+        espUpdateConnection = nil
     end
     
-    -- Crear carpeta para elementos ESP
+    -- Limpiar datos de ESP
+    for _, data in pairs(espData) do
+        if data.highlight then data.highlight:Destroy() end
+        if data.nameTag then data.nameTag:Destroy() end
+        if data.connection then data.connection:Disconnect() end
+    end
+    espData = {}
+    
+    if not enabled then return end
+    
+    -- Crear nueva carpeta para ESP
     espFolder = Instance.new("Folder")
     espFolder.Name = "ESPFolder"
     espFolder.Parent = game.CoreGui
     
-    -- Función para obtener color de equipo
     local function getTeamColor(player)
         if player.Team then
             return player.Team.TeamColor.Color
@@ -1157,11 +1112,10 @@ local function ESP(enabled)
         return Color3.fromRGB(255, 0, 0)
     end
     
-    -- Función para crear ESP para un jugador
-    local function createPlayerESP(player)
+    -- Crear ESP para un jugador
+    local function createESP(player)
         if player == LocalPlayer then return end
         
-        -- Crear highlight
         local highlight = Instance.new("Highlight")
         highlight.Name = player.Name .. "Highlight"
         highlight.FillColor = getTeamColor(player)
@@ -1170,7 +1124,6 @@ local function ESP(enabled)
         highlight.OutlineTransparency = 0
         highlight.Parent = espFolder
         
-        -- Crear nametag
         local billboardGui = Instance.new("BillboardGui")
         billboardGui.Name = player.Name .. "NameTag"
         billboardGui.Size = UDim2.new(0, 200, 0, 50)
@@ -1188,361 +1141,203 @@ local function ESP(enabled)
         nameLabel.TextScaled = true
         nameLabel.Parent = billboardGui
         
-        -- Guardar datos del jugador
-        espPlayerData[player] = {
+        espData[player.Name] = {
             highlight = highlight,
             nameTag = billboardGui,
-            nameLabel = nameLabel,
-            lastUpdate = 0
+            nameLabel = nameLabel
         }
-        
-        -- Conectar evento de personaje añadido
-        local characterAddedConnection = player.CharacterAdded:Connect(function(char)
-            if espPlayerData[player] then
-                espPlayerData[player].highlight.Parent = char
-                espPlayerData[player].nameTag.Parent = char:WaitForChild("HumanoidRootPart")
-            end
-        end)
-        
-        table.insert(espConnections, characterAddedConnection)
-        
-        -- Aplicar a personaje actual si existe
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            highlight.Parent = player.Character
-            billboardGui.Parent = player.Character.HumanoidRootPart
-        end
     end
     
     -- Crear ESP para jugadores existentes
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            createPlayerESP(player)
+            createESP(player)
         end
     end
     
-    -- Conectar eventos para nuevos jugadores
+    -- Crear ESP para nuevos jugadores
     local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createPlayerESP(player)
+        createESP(player)
     end)
     
+    -- Limpiar ESP cuando los jugadores salen
     local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if espPlayerData[player] then
-            if espPlayerData[player].highlight then
-                espPlayerData[player].highlight:Destroy()
-            end
-            if espPlayerData[player].nameTag then
-                espPlayerData[player].nameTag:Destroy()
-            end
-            espPlayerData[player] = nil
+        if espData[player.Name] then
+            if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
+            if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
+            espData[player.Name] = nil
         end
     end)
     
-    table.insert(espConnections, playerAddedConnection)
-    table.insert(espConnections, playerRemovingConnection)
-    
-    -- OPTIMIZACIÓN: Actualizar ESP con menos frecuencia
-    espUpdateConnection = RunService.RenderStepped:Connect(function()
-        -- Limitar actualizaciones a 10 por segundo
-        local currentTime = tick()
-        
-        for player, data in pairs(espPlayerData) do
-            -- Solo actualizar si han pasado 0.1 segundos desde la última actualización
-            if currentTime - data.lastUpdate >= 0.1 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                data.lastUpdate = currentTime
+    -- Actualizar ESP con menos frecuencia (cada 0.1 segundos en lugar de cada frame)
+    espUpdateConnection = RunService.Heartbeat:Connect(function()
+        for playerName, data in pairs(espData) do
+            local player = Players:FindFirstChild(playerName)
+            if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                data.highlight.Parent = player.Character
+                data.nameTag.Parent = player.Character.HumanoidRootPart
                 
-                -- Actualizar color basado en equipo
-                data.highlight.FillColor = getTeamColor(player)
-                data.nameLabel.TextColor3 = getTeamColor(player)
-                
-                -- Actualizar texto con distancia
-                local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                -- Actualizar texto solo cuando es necesario (cada 10 frames)
+                if tick() % 0.5 < 0.1 then
+                    local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                    data.highlight.FillColor = getTeamColor(player)
+                    data.nameLabel.TextColor3 = getTeamColor(player)
+                end
             end
         end
     end)
+    
+    -- Guardar conexiones para limpiarlas después
+    espData.playerAddedConnection = playerAddedConnection
+    espData.playerRemovingConnection = playerRemovingConnection
 end
 
--- OPTIMIZACIÓN: Implementación mejorada de Chams
-local chamsFolder
-local chamsConnections = {}
-local chamsPlayerData = {}
-local chamsUpdateConnection
-
+-- Función para Chams
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
-    
-    -- Limpiar conexiones existentes
-    if chamsUpdateConnection then
-        chamsUpdateConnection:Disconnect()
-        chamsUpdateConnection = nil
-    end
-    
-    for _, connection in pairs(chamsConnections) do
-        connection:Disconnect()
-    end
-    chamsConnections = {}
-    
-    -- Limpiar elementos visuales
-    if chamsFolder then
-        chamsFolder:Destroy()
-        chamsFolder = nil
-    end
-    
-    if not enabled then
-        -- Limpiar datos de jugadores
-        for _, data in pairs(chamsPlayerData) do
-            for _, cham in pairs(data.chams) do
-                cham:Destroy()
-            end
-        end
-        chamsPlayerData = {}
-        return
-    end
-    
-    -- Crear carpeta para elementos Chams
-    chamsFolder = Instance.new("Folder")
-    chamsFolder.Name = "ChamsFolder"
-    chamsFolder.Parent = game.CoreGui
-    
-    -- Función para obtener color de equipo
-    local function getTeamColor(player)
-        if player.Team then
-            return player.Team.TeamColor.Color
-        end
-        return Color3.fromRGB(255, 0, 0)
-    end
-    
-    -- Función para crear Chams para un jugador
-    local function createPlayerChams(player)
+    local ChamsFolder = Instance.new("Folder")
+    ChamsFolder.Name = "ChamsFolder"
+    ChamsFolder.Parent = game.CoreGui
+
+    local function createChams(player)
         if player == LocalPlayer then return end
-        
-        local chams = {}
-        chamsPlayerData[player] = {
-            chams = chams,
-            lastUpdate = 0
-        }
-        
-        -- Función para aplicar chams a una parte
-        local function applyCham(part)
-            if not part:IsA("BasePart") or chams[part] then return end
-            
+
+        local function applyChams(part)
             local chamPart = Instance.new("BoxHandleAdornment")
             chamPart.Name = player.Name .. "Cham"
             chamPart.Adornee = part
             chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 5
+            chamPart.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
             chamPart.Size = part.Size
             chamPart.Transparency = 0.5
-            chamPart.Color3 = getTeamColor(player)
-            chamPart.Parent = chamsFolder
-            
-            chams[part] = chamPart
+            chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+            chamPart.Parent = ChamsFolder
+            return chamPart
         end
-        
-        -- Función para actualizar chams en un personaje
-        local function updateCharacterChams(character)
-            if not character then return end
-            
-            -- Aplicar solo a partes principales para mejorar rendimiento
-            local mainParts = {"Head", "Torso", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-            for _, partName in ipairs(mainParts) do
-                local part = character:FindFirstChild(partName)
-                if part then
-                    applyCham(part)
+
+        local chams = {}
+        local function updateChams()
+            if player.Character then
+                for _, part in pairs(player.Character:GetChildren()) do
+                    if part:IsA("BasePart") and not chams[part] then
+                        chams[part] = applyChams(part)
+                    end
                 end
             end
         end
-        
-        -- Conectar evento de personaje añadido
-        local characterAddedConnection = player.CharacterAdded:Connect(function(char)
-            -- Limpiar chams anteriores
-            for part, cham in pairs(chams) do
-                cham:Destroy()
-                chams[part] = nil
-            end
-            
-            -- Esperar a que las partes principales se carguen
-            task.wait(0.5)
-            updateCharacterChams(char)
-        end)
-        
-        table.insert(chamsConnections, characterAddedConnection)
-        
-        -- Aplicar a personaje actual si existe
-        if player.Character then
-            updateCharacterChams(player.Character)
-        end
-    end
-    
-    -- Crear Chams para jugadores existentes
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            createPlayerChams(player)
-        end
-    end
-    
-    -- Conectar eventos para nuevos jugadores
-    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createPlayerChams(player)
-    end)
-    
-    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if chamsPlayerData[player] then
-            for _, cham in pairs(chamsPlayerData[player].chams) do
-                cham:Destroy()
-            end
-            chamsPlayerData[player] = nil
-        end
-    end)
-    
-    table.insert(chamsConnections, playerAddedConnection)
-    table.insert(chamsConnections, playerRemovingConnection)
-    
-    -- OPTIMIZACIÓN: Actualizar colores con menos frecuencia
-    chamsUpdateConnection = RunService.Heartbeat:Connect(function()
-        -- Actualizar solo cada 0.5 segundos
-        local currentTime = tick()
-        
-        for player, data in pairs(chamsPlayerData) do
-            if currentTime - data.lastUpdate >= 0.5 then
-                data.lastUpdate = currentTime
-                
-                local teamColor = getTeamColor(player)
-                for _, cham in pairs(data.chams) do
-                    cham.Color3 = teamColor
-                end
-            end
-        end
-    end)
-end
 
--- OPTIMIZACIÓN: Implementación mejorada de Tracers
-local tracersFolder
-local tracersConnections = {}
-local tracersPlayerData = {}
-local tracersUpdateConnection
+        local connection = RunService.RenderStepped:Connect(updateChams)
 
-local function Tracers(enabled)
-    EnabledFeatures["Tracers"] = enabled
-    
-    -- Limpiar conexiones existentes
-    if tracersUpdateConnection then
-        tracersUpdateConnection:Disconnect()
-        tracersUpdateConnection = nil
-    end
-    
-    for _, connection in pairs(tracersConnections) do
-        connection:Disconnect()
-    end
-    tracersConnections = {}
-    
-    -- Limpiar elementos visuales
-    if tracersFolder then
-        tracersFolder:Destroy()
-        tracersFolder = nil
-    end
-    
-    if not enabled then
-        -- Limpiar datos de jugadores
-        for _, data in pairs(tracersPlayerData) do
-            if data.tracer then
-                data.tracer:Remove()
-            end
-        end
-        tracersPlayerData = {}
-        return
-    end
-    
-    -- Crear carpeta para elementos Tracers
-    tracersFolder = Instance.new("Folder")
-    tracersFolder.Name = "TracersFolder"
-    tracersFolder.Parent = game.CoreGui
-    
-    -- Función para obtener color de equipo
-    local function getTeamColor(player)
-        if player.Team then
-            return player.Team.TeamColor.Color
-        end
-        return Color3.fromRGB(255, 0, 0)
-    end
-    
-    -- Función para crear Tracer para un jugador
-    local function createPlayerTracer(player)
-        if player == LocalPlayer then return end
-        
-        local tracer = Drawing.new("Line")
-        tracer.Visible = false
-        tracer.Color = getTeamColor(player)
-        tracer.Thickness = 1
-        tracer.Transparency = 1
-        
-        tracersPlayerData[player] = {
-            tracer = tracer,
-            lastUpdate = 0,
-            lastVisible = false
+        player.CharacterAdded:Connect(updateChams)
+
+        return {
+            chams = chams,
+            connection = connection
         }
     end
-    
-    -- Crear Tracers para jugadores existentes
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            createPlayerTracer(player)
-        end
-    end
-    
-    -- Conectar eventos para nuevos jugadores
-    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createPlayerTracer(player)
-    end)
-    
-    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if tracersPlayerData[player] and tracersPlayerData[player].tracer then
-            tracersPlayerData[player].tracer:Remove()
-            tracersPlayerData[player] = nil
-        end
-    end)
-    
-    table.insert(tracersConnections, playerAddedConnection)
-    table.insert(tracersConnections, playerRemovingConnection)
-    
-    -- OPTIMIZACIÓN: Actualizar tracers con menos frecuencia y solo cuando es necesario
-    tracersUpdateConnection = RunService.RenderStepped:Connect(function()
-        -- Limitar actualizaciones
-        local currentTime = tick()
-        
-        for player, data in pairs(tracersPlayerData) do
-            -- Solo actualizar si han pasado 0.05 segundos desde la última actualización
-            if currentTime - data.lastUpdate >= 0.05 then
-                data.lastUpdate = currentTime
-                
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then - data.lastUpdate >= 0.05 then
-                data.lastUpdate = currentTime
-                
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-                    
-                    -- Solo actualizar si la visibilidad cambia o si está en pantalla
-                    if onScreen ~= data.lastVisible or onScreen then
-                        data.lastVisible = onScreen
-                        
-                        if onScreen then
-                            data.tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                            data.tracer.To = Vector2.new(vector.X, vector.Y)
-                            data.tracer.Color = getTeamColor(player)
-                            data.tracer.Visible = true
-                        else
-                            data.tracer.Visible = false
-                        end
-                    end
-                else
-                    if data.tracer.Visible then
-                        data.tracer.Visible = false
-                        data.lastVisible = false
-                    end
-                end
+
+    local chamsData = {}
+
+    if enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                chamsData[player] = createChams(player)
             end
         end
-    end)
+
+        Players.PlayerAdded:Connect(function(player)
+            chamsData[player] = createChams(player)
+        end)
+
+        Players.PlayerRemoving:Connect(function(player)
+            if chamsData[player] then
+                for _, cham in pairs(chamsData[player].chams) do
+                    cham:Destroy()
+                end
+                chamsData[player].connection:Disconnect()
+                chamsData[player] = nil
+            end
+        end)
+    else
+        for player, data in pairs(chamsData) do
+            for _, cham in pairs(data.chams) do
+                cham:Destroy()
+            end
+            data.connection:Disconnect()
+            chamsData[player] = nil
+        end
+        ChamsFolder:Destroy()
+    end
+end
+
+-- Función para Tracers
+local function Tracers(enabled)
+    EnabledFeatures["Tracers"] = enabled
+    local TracersFolder = Instance.new("Folder")
+    TracersFolder.Name = "TracersFolder"
+    TracersFolder.Parent = game.CoreGui
+
+    local function createTracer(player)
+        if player == LocalPlayer then return end
+
+        local tracer = Drawing.new("Line")
+        tracer.Visible = false
+        tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+        tracer.Thickness = 1
+        tracer.Transparency = 1
+
+        local function updateTracer()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    tracer.To = Vector2.new(vector.X, vector.Y)
+                    tracer.Visible = true
+                else
+                    tracer.Visible = false
+                end
+            else
+                tracer.Visible = false
+            end
+        end
+
+        local connection = RunService.RenderStepped:Connect(updateTracer)
+
+        return {
+            tracer = tracer,
+            connection = connection
+        }
+    end
+
+    local tracersData = {}
+
+    if enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                tracersData[player] = createTracer(player)
+            end
+        end
+
+        Players.PlayerAdded:Connect(function(player)
+            tracersData[player] = createTracer(player)
+        end)
+
+        Players.PlayerRemoving:Connect(function(player)
+            if tracersData[player] then
+                tracersData[player].tracer:Remove()
+                tracersData[player].connection:Disconnect()
+                tracersData[player] = nil
+            end
+        end)
+    else
+        for player, data in pairs(tracersData) do
+            data.tracer:Remove()
+            data.connection:Disconnect()
+            tracersData[player] = nil
+        end
+        TracersFolder:Destroy()
+    end
 end
 
 -- Función para Fullbright
@@ -1615,6 +1410,7 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
+    {name = "WallRun", callback = WallRun},
     {name = "Levitation", callback = Levitation}
 }
 
@@ -1661,6 +1457,7 @@ local OptimizationFeatures = {
             game:GetService("Lighting").GlobalShadows = false
             game:GetService("Lighting").Technology = Enum.Technology.Compatibility
             for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:  do
                 if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
                     v.Enabled = false
                 end
@@ -1901,7 +1698,7 @@ local function SetupRespawnPersistence()
             end
         end
     end)
-}
+end
 
 -- Llamar a la función de persistencia
 SetupRespawnPersistence()
@@ -1931,7 +1728,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Mensaje de confirmación
-print("Script optimizado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
-print("Las funciones de ESP y HitboxExpander han sido optimizadas para evitar caídas de FPS.")
-print("Las funciones ahora persisten después de morir y reaparecer.")
+print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
+print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
+print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander y ESP optimizados.")
 print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
