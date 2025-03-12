@@ -1097,30 +1097,23 @@ local function ESP(enabled)
         highlight.Adornee = nil
         highlight.Parent = ESPFolder
         
-        -- Crear etiqueta de nombre y barra de vida
+        -- Crear etiqueta de nombre (nombre rojo)
         local nameTag = Drawing.new("Text")
         nameTag.Visible = false
         nameTag.Center = true
         nameTag.Outline = true
         nameTag.Size = 18
-        nameTag.Color = Color3.new(1, 1, 1)
+        nameTag.Color = Color3.new(1, 0, 0)  -- Rojo para el nombre
         nameTag.OutlineColor = Color3.new(0, 0, 0)
         
-        -- Crear barra de vida (fondo)
-        local healthBarBg = Drawing.new("Square")
-        healthBarBg.Visible = false
-        healthBarBg.Color = Color3.new(0.1, 0.1, 0.1)
-        healthBarBg.Thickness = 1
-        healthBarBg.Filled = true
-        healthBarBg.Transparency = 0.8
-        
-        -- Crear barra de vida (relleno)
-        local healthBarFill = Drawing.new("Square")
-        healthBarFill.Visible = false
-        healthBarFill.Color = Color3.new(0, 1, 0)
-        healthBarFill.Thickness = 1
-        healthBarFill.Filled = true
-        healthBarFill.Transparency = 0.7
+        -- Crear etiqueta de vida (texto verde)
+        local healthTag = Drawing.new("Text")
+        healthTag.Visible = false
+        healthTag.Center = false  -- No centrado para alinearlo al lado del nombre
+        healthTag.Outline = true
+        healthTag.Size = 18
+        healthTag.Color = Color3.new(0, 1, 0)  -- Verde para la vida
+        healthTag.OutlineColor = Color3.new(0, 0, 0)
         
         -- Variable para controlar la tasa de actualización
         local lastUpdateTime = tick()
@@ -1154,50 +1147,31 @@ local function ESP(enabled)
                 local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
                 
                 if onScreen then
-                    -- Actualizar etiqueta de nombre con vida
-                    local health = math.floor(humanoid.Health)
-                    local maxHealth = math.floor(humanoid.MaxHealth)
-                    local healthPercentage = health / maxHealth
-                    
-                    -- Color basado en salud
-                    local healthColor
-                    if healthPercentage > 0.7 then
-                        healthColor = Color3.new(0, 1, 0)  -- Verde
-                    elseif healthPercentage > 0.3 then
-                        healthColor = Color3.new(1, 1, 0)  -- Amarillo
-                    else
-                        healthColor = Color3.new(1, 0, 0)  -- Rojo
-                    end
-                    
-                    -- Actualizar texto
-                    nameTag.Text = string.format("%s [%d/%d]", player.Name, health, maxHealth)
-                    nameTag.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+                    -- Actualizar etiqueta de nombre
+                    nameTag.Text = player.Name
+                    nameTag.Position = Vector2.new(screenPos.X, screenPos.Y - 30)
                     nameTag.Visible = true
                     
-                    -- Actualizar barra de vida
-                    local barWidth = 60
-                    local barHeight = 6
+                    -- Calcular valores de vida
+                    local health = math.floor(humanoid.Health)
+                    local maxHealth = math.floor(humanoid.MaxHealth)
                     
-                    -- Barra de fondo
-                    healthBarBg.Size = Vector2.new(barWidth, barHeight)
-                    healthBarBg.Position = Vector2.new(screenPos.X - barWidth/2, screenPos.Y - 25)
-                    healthBarBg.Visible = true
+                    -- Actualizar etiqueta de vida
+                    healthTag.Text = string.format(" %d/%d", health, maxHealth)
                     
-                    -- Barra de relleno
-                    healthBarFill.Size = Vector2.new(barWidth * healthPercentage, barHeight)
-                    healthBarFill.Position = Vector2.new(screenPos.X - barWidth/2, screenPos.Y - 25)
-                    healthBarFill.Color = healthColor
-                    healthBarFill.Visible = true
+                    -- Posicionar la etiqueta de vida al lado del nombre
+                    -- Calcular el ancho aproximado del texto del nombre (ajustar si es necesario)
+                    local nameWidth = #player.Name * 8  -- Aproximación del ancho
+                    healthTag.Position = Vector2.new(screenPos.X + (nameWidth/2), screenPos.Y - 30)
+                    healthTag.Visible = true
                 else
                     nameTag.Visible = false
-                    healthBarBg.Visible = false
-                    healthBarFill.Visible = false
+                    healthTag.Visible = false
                 end
             else
                 highlight.Adornee = nil
                 nameTag.Visible = false
-                healthBarBg.Visible = false
-                healthBarFill.Visible = false
+                healthTag.Visible = false
             end
         end
         
@@ -1208,8 +1182,7 @@ local function ESP(enabled)
         return {
             highlight = highlight,
             nameTag = nameTag,
-            healthBarBg = healthBarBg,
-            healthBarFill = healthBarFill,
+            healthTag = healthTag,
             connection = connection
         }
     end
@@ -1239,11 +1212,8 @@ local function ESP(enabled)
                 if espData[player].nameTag then
                     espData[player].nameTag:Remove()
                 end
-                if espData[player].healthBarBg then
-                    espData[player].healthBarBg:Remove()
-                end
-                if espData[player].healthBarFill then
-                    espData[player].healthBarFill:Remove()
+                if espData[player].healthTag then
+                    espData[player].healthTag:Remove()
                 end
                 if espData[player].connection then
                     espData[player].connection:Disconnect()
@@ -1264,11 +1234,8 @@ local function ESP(enabled)
             if data.nameTag then
                 data.nameTag:Remove()
             end
-            if data.healthBarBg then
-                data.healthBarBg:Remove()
-            end
-            if data.healthBarFill then
-                data.healthBarFill:Remove()
+            if data.healthTag then
+                data.healthTag:Remove()
             end
             if data.connection then
                 data.connection:Disconnect()
