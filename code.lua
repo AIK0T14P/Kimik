@@ -1272,7 +1272,6 @@ local function Tracers(enabled)
 
     local function createTracer(player)
         if player == LocalPlayer then return end
-
         local tracer = Drawing.new("Line")
         tracer.Visible = false
         tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
@@ -1280,14 +1279,17 @@ local function Tracers(enabled)
         tracer.Transparency = 1
 
         local function updateTracer()
-            if player.Character then
+            if player.Character and EnabledFeatures["Tracers"] then
                 local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("HumanoidRootPart")
                 if torso then
-                    -- Obtener la posición de los huesos centrales (torso o humanoide)
-                    local vector, onScreen = Camera:WorldToScreenPoint(torso.Position)
+                    -- Obtener la posición del torso y convertirla a coordenadas de pantalla
+                    local torsoPosition = torso.Position
+                    local vector, onScreen = Camera:WorldToScreenPoint(torsoPosition)
+                    
                     if onScreen then
                         -- Usar el centro de la pantalla como origen del trazado
                         tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        -- Usar directamente las coordenadas X e Y sin que la profundidad afecte
                         tracer.To = Vector2.new(vector.X, vector.Y)
                         tracer.Visible = true
                     else
@@ -1303,7 +1305,7 @@ local function Tracers(enabled)
 
         -- Conexión para actualizar el trazado cada fotograma
         local connection = RunService.RenderStepped:Connect(updateTracer)
-
+        
         return {
             tracer = tracer,
             connection = connection
@@ -1311,33 +1313,53 @@ local function Tracers(enabled)
     end
 
     local tracersData = {}
-
+    
     if enabled then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 tracersData[player] = createTracer(player)
             end
         end
-
-        Players.PlayerAdded:Connect(function(player)
+        
+        -- Conectar eventos para nuevos jugadores
+        local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
             tracersData[player] = createTracer(player)
         end)
-
-        Players.PlayerRemoving:Connect(function(player)
+        
+        local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
             if tracersData[player] then
                 tracersData[player].tracer:Remove()
                 tracersData[player].connection:Disconnect()
                 tracersData[player] = nil
             end
         end)
+        
+        -- Guardar las conexiones para desconectarlas después
+        TracersFolder:SetAttribute("PlayerAddedConnection", playerAddedConnection)
+        TracersFolder:SetAttribute("PlayerRemovingConnection", playerRemovingConnection)
     else
+        -- Limpiar todas las conexiones y trazadores
         for player, data in pairs(tracersData) do
-            data.tracer:Remove()
-            data.connection:Disconnect()
+            if data.tracer then
+                data.tracer:Remove()
+            end
+            if data.connection then
+                data.connection:Disconnect()
+            end
             tracersData[player] = nil
         end
+        
+        -- Desconectar eventos si existen
+        local playerAddedConnection = TracersFolder:GetAttribute("PlayerAddedConnection")
+        local playerRemovingConnection = TracersFolder:GetAttribute("PlayerRemovingConnection")
+        
+        if playerAddedConnection then playerAddedConnection:Disconnect() end
+        if playerRemovingConnection then playerRemovingConnection:Disconnect() end
+        
         TracersFolder:Destroy()
     end
+    
+    return tracersData
 end
 
 -- Función para Fullbright
