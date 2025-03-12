@@ -1255,11 +1255,18 @@ local function Tracers(enabled)
 
         local function updateTracer()
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(vector.X, vector.Y)
-                    tracer.Visible = true
+                -- Usar la posición del UpperTorso (o HumanoidRootPart) para obtener la posición central del cuerpo
+                local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("HumanoidRootPart")
+                if torso then
+                    local vector, onScreen = Camera:WorldToScreenPoint(torso.Position)  -- Siempre usa la posición del torso
+                    if onScreen then
+                        -- Coloca el trazado desde el centro de la pantalla
+                        tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        tracer.To = Vector2.new(vector.X, vector.Y)
+                        tracer.Visible = true
+                    else
+                        tracer.Visible = false
+                    end
                 else
                     tracer.Visible = false
                 end
@@ -1268,6 +1275,7 @@ local function Tracers(enabled)
             end
         end
 
+        -- Conexión para actualizar el trazado cada fotograma
         local connection = RunService.RenderStepped:Connect(updateTracer)
 
         return {
