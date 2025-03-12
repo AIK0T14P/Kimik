@@ -1115,16 +1115,13 @@ local function ESP(enabled)
         
         local healthTag = Drawing.new("Text")
         healthTag.Visible = false
-        healthTag.Center = true  -- Asegurar que la vida quede alineada
+        healthTag.Center = true
         healthTag.Outline = true
         healthTag.Size = 18
         healthTag.Color = Color3.new(0, 1, 0)
         healthTag.OutlineColor = Color3.new(0, 0, 0)
         table.insert(drawingObjects, healthTag)
         
-        local lastUpdateTime = tick()
-        local updateInterval = 0.05
-
         local function updateESP()
             if not EnabledFeatures["ESP"] then
                 nameTag.Visible = false
@@ -1132,38 +1129,30 @@ local function ESP(enabled)
                 return
             end
             
-            local currentTime = tick()
-            if currentTime - lastUpdateTime < updateInterval then
-                return
-            end
-            lastUpdateTime = currentTime
+            -- Intentar obtener el personaje actual del jugador
+            local character = player.Character or player.CharacterAdded:Wait()
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local head = character:FindFirstChild("Head")
             
-            if not player or not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
+            if not humanoid or not head then
                 nameTag.Visible = false
                 healthTag.Visible = false
-                highlight.Adornee = nil
                 return
             end
             
-            local humanoid = player.Character.Humanoid
-            local head = player.Character.Head
-            
-            if highlight.Adornee ~= player.Character then
-                highlight.Adornee = player.Character
-            end
+            highlight.Adornee = character
             
             local headPos = head.Position + Vector3.new(0, 1, 0)
             local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
             
             if onScreen then
                 local distance = (Camera.CFrame.Position - head.Position).Magnitude
-                
                 local scaleFactor = math.clamp(30 / distance, 0.5, 2)
                 local textSize = math.floor(18 * scaleFactor)
-
+                
                 nameTag.Size = textSize
                 healthTag.Size = textSize
-
+                
                 nameTag.Text = player.Name
                 nameTag.Position = Vector2.new(screenPos.X, screenPos.Y)
                 nameTag.Visible = true
@@ -1172,8 +1161,6 @@ local function ESP(enabled)
                 local maxHealth = math.floor(humanoid.MaxHealth)
                 
                 healthTag.Text = string.format("%d/%d", health, maxHealth)
-                
-                -- **Asegurar que la vida esté justo debajo del nombre**
                 healthTag.Position = Vector2.new(screenPos.X, screenPos.Y + textSize + 2)
                 healthTag.Visible = true
             else
@@ -1182,8 +1169,17 @@ local function ESP(enabled)
             end
         end
         
+        local function onCharacterAdded()
+            task.wait(0.5) -- Esperar a que el personaje cargue completamente
+            updateESP()
+        end
+        
+        -- Conectar actualización del ESP
         local connection = RunService.RenderStepped:Connect(updateESP)
         table.insert(connections, connection)
+        
+        -- Detectar cuando el personaje reaparece
+        player.CharacterAdded:Connect(onCharacterAdded)
         
         return {
             highlight = highlight,
@@ -1207,51 +1203,16 @@ local function ESP(enabled)
         end)
         table.insert(connections, playerAddedConnection)
         
-        local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-            if espData[player] then
-                if espData[player].highlight then
-                    espData[player].highlight:Destroy()
-                end
-                if espData[player].nameTag then
-                    espData[player].nameTag:Remove()
-                end
-                if espData[player].healthTag then
-                    espData[player].healthTag:Remove()
-                end
-                if espData[player].connection then
-                    espData[player].connection:Disconnect()
-                end
-                espData[player] = nil
-            end
-        end)
-        table.insert(connections, playerRemovingConnection)
-        
         local function cleanupESP()
             if not EnabledFeatures["ESP"] then
-                for player, data in pairs(espData) do
-                    if data.highlight then
-                        data.highlight:Destroy()
-                    end
-                    if data.nameTag then
-                        data.nameTag.Visible = false
-                        data.nameTag:Remove()
-                    end
-                    if data.healthTag then
-                        data.healthTag.Visible = false
-                        data.healthTag:Remove()
-                    end
-                    if data.connection then
-                        data.connection:Disconnect()
-                    end
-                    espData[player] = nil
-                end
-                
-                for _, connection in ipairs(connections) do
-                    connection:Disconnect()
+                for _, data in pairs(espData) do
+                    if data.highlight then data.highlight:Destroy() end
+                    if data.nameTag then data.nameTag:Remove() end
+                    if data.healthTag then data.healthTag:Remove() end
+                    if data.connection then data.connection:Disconnect() end
                 end
                 
                 for _, obj in ipairs(drawingObjects) do
-                    obj.Visible = false
                     obj:Remove()
                 end
                 
@@ -1264,7 +1225,6 @@ local function ESP(enabled)
         local gameExitConnection = game:BindToClose(cleanupESP)
         table.insert(connections, gameExitConnection)
         
-        ESPFolder:SetAttribute("CleanupFunction", true)
         _G.CleanupESP = cleanupESP
     end
     
