@@ -1369,7 +1369,8 @@ local function UITransparency(value)
     ContentFrame.BackgroundTransparency = transparency
     
     -- Mantener el borde principal visible (no transparente)
-    MainBorder.BackgroundTransparency = 0
+    MainBorder.BackgroundTransparency = transparency
+    
     
     -- Aplicar a todos los elementos dentro de las secciones
     for _, section in pairs(Sections) do
