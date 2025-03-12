@@ -1073,16 +1073,13 @@ local function Telekinesis(enabled)
 end
 
 -- Implementación mejorada del ESP con colores de equipo
-
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
     
-    -- Limpiar ESP anterior si existe
     if game.CoreGui:FindFirstChild("ESPFolder") then
         game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
     end
     
-    -- Crear carpeta ESP solo si está habilitado
     local ESPFolder
     if enabled then
         ESPFolder = Instance.new("Folder")
@@ -1098,7 +1095,6 @@ local function ESP(enabled)
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        -- Crear highlight
         local highlight = Instance.new("Highlight")
         highlight.Name = player.Name .. "_Highlight"
         highlight.FillColor = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
@@ -1108,22 +1104,20 @@ local function ESP(enabled)
         highlight.Adornee = nil
         highlight.Parent = ESPFolder
         
-        -- Crear nombre
         local nameTag = Drawing.new("Text")
         nameTag.Visible = false
         nameTag.Center = true
         nameTag.Outline = true
-        nameTag.Size = 18  -- Tamaño base
+        nameTag.Size = 18
         nameTag.Color = Color3.new(1, 0, 0)
         nameTag.OutlineColor = Color3.new(0, 0, 0)
         table.insert(drawingObjects, nameTag)
         
-        -- Crear barra de vida
         local healthTag = Drawing.new("Text")
         healthTag.Visible = false
-        healthTag.Center = false
+        healthTag.Center = true  -- Asegurar que la vida quede alineada
         healthTag.Outline = true
-        healthTag.Size = 18  -- Tamaño base
+        healthTag.Size = 18
         healthTag.Color = Color3.new(0, 1, 0)
         healthTag.OutlineColor = Color3.new(0, 0, 0)
         table.insert(drawingObjects, healthTag)
@@ -1164,9 +1158,8 @@ local function ESP(enabled)
             if onScreen then
                 local distance = (Camera.CFrame.Position - head.Position).Magnitude
                 
-                -- **Escalado dinámico del texto**
                 local scaleFactor = math.clamp(30 / distance, 0.5, 2)
-                local textSize = math.floor(18 * scaleFactor)  
+                local textSize = math.floor(18 * scaleFactor)
 
                 nameTag.Size = textSize
                 healthTag.Size = textSize
@@ -1178,10 +1171,10 @@ local function ESP(enabled)
                 local health = math.floor(humanoid.Health)
                 local maxHealth = math.floor(humanoid.MaxHealth)
                 
-                healthTag.Text = string.format(" %d/%d", health, maxHealth)
+                healthTag.Text = string.format("%d/%d", health, maxHealth)
                 
-                local nameWidth = #player.Name * 8
-                healthTag.Position = Vector2.new(screenPos.X + (nameWidth / 2), screenPos.Y)
+                -- **Asegurar que la vida esté justo debajo del nombre**
+                healthTag.Position = Vector2.new(screenPos.X, screenPos.Y + textSize + 2)
                 healthTag.Visible = true
             else
                 nameTag.Visible = false
@@ -1289,6 +1282,7 @@ local function DisableESP()
         game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
     end
 end
+
 -- Función para Chams
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
