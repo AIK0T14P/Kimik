@@ -1075,76 +1075,141 @@ end
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
+    
+    -- Crear o limpiar la carpeta ESP
     local ESPFolder = Instance.new("Folder")
     ESPFolder.Name = "ESPFolder"
     ESPFolder.Parent = game.CoreGui
     
-    local function getTeamColor(player)
-        if player.Team then
-            return player.Team.TeamColor.Color
-        end
-        return Color3.fromRGB(255, 0, 0) -- Color por defecto si no tiene equipo
-    end
+    -- Mantener un seguimiento de todas las conexiones
+    local connections = {}
     
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        local function createBoxHighlight()
-            local highlight = Instance.new("Highlight")
-            highlight.Name = player.Name .. "Highlight"
-            highlight.FillColor = getTeamColor(player)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Parent = ESPFolder
-            return highlight
-        end
+        -- Crear highlight para el jugador
+        local highlight = Instance.new("Highlight")
+        highlight.Name = player.Name .. "_Highlight"
+        highlight.FillColor = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+        highlight.OutlineColor = Color3.new(1, 1, 1)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = nil
+        highlight.Parent = ESPFolder
         
-        local function createNameTag()
-            local billboardGui = Instance.new("BillboardGui")
-            billboardGui.Name = player.Name .. "NameTag"
-            billboardGui.Size = UDim2.new(0, 200, 0, 50)
-            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-            billboardGui.AlwaysOnTop = true
-            billboardGui.Parent = ESPFolder
-            
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.new(1, 0, 0, 20)
-            nameLabel.BackgroundTransparency = 1
-            nameLabel.TextColor3 = getTeamColor(player)
-            nameLabel.TextStrokeTransparency = 0
-            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            nameLabel.Font = Enum.Font.SourceSansBold
-            nameLabel.TextScaled = true
-            nameLabel.Parent = billboardGui
-            
-            return billboardGui, nameLabel
-        end
+        -- Crear etiqueta de nombre y barra de vida
+        local nameTag = Drawing.new("Text")
+        nameTag.Visible = false
+        nameTag.Center = true
+        nameTag.Outline = true
+        nameTag.Size = 18
+        nameTag.Color = Color3.new(1, 1, 1)
+        nameTag.OutlineColor = Color3.new(0, 0, 0)
         
-        local highlight = createBoxHighlight()
-        local nameTag, nameLabel = createNameTag()
+        -- Crear barra de vida (fondo)
+        local healthBarBg = Drawing.new("Square")
+        healthBarBg.Visible = false
+        healthBarBg.Color = Color3.new(0.1, 0.1, 0.1)
+        healthBarBg.Thickness = 1
+        healthBarBg.Filled = true
+        healthBarBg.Transparency = 0.8
+        
+        -- Crear barra de vida (relleno)
+        local healthBarFill = Drawing.new("Square")
+        healthBarFill.Visible = false
+        healthBarFill.Color = Color3.new(0, 1, 0)
+        healthBarFill.Thickness = 1
+        healthBarFill.Filled = true
+        healthBarFill.Transparency = 0.7
+        
+        -- Variable para controlar la tasa de actualización
+        local lastUpdateTime = tick()
+        local updateInterval = 0.05  -- Actualizar 20 veces por segundo en lugar de cada frame
         
         local function updateESP()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                highlight.Parent = player.Character
-                nameTag.Parent = player.Character.HumanoidRootPart
-                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
-                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-                highlight.FillColor = getTeamColor(player)
-                nameLabel.TextColor3 = getTeamColor(player)
+            -- Solo actualizar si ESP está habilitado
+            if not EnabledFeatures["ESP"] then
+                return
+            end
+            
+            -- Limitar tasa de actualización para optimizar rendimiento
+            local currentTime = tick()
+            if currentTime - lastUpdateTime < updateInterval then
+                return
+            end
+            lastUpdateTime = currentTime
+            
+            if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
+                local humanoid = player.Character.Humanoid
+                local rootPart = player.Character.HumanoidRootPart
+                local head = player.Character:FindFirstChild("Head")
+                
+                -- Actualizar adornee del highlight
+                if highlight.Adornee ~= player.Character then
+                    highlight.Adornee = player.Character
+                end
+                
+                -- Obtener posición en pantalla para la etiqueta
+                local headPos = head and head.Position or rootPart.Position + Vector3.new(0, 1, 0)
+                local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
+                
+                if onScreen then
+                    -- Actualizar etiqueta de nombre con vida
+                    local health = math.floor(humanoid.Health)
+                    local maxHealth = math.floor(humanoid.MaxHealth)
+                    local healthPercentage = health / maxHealth
+                    
+                    -- Color basado en salud
+                    local healthColor
+                    if healthPercentage > 0.7 then
+                        healthColor = Color3.new(0, 1, 0)  -- Verde
+                    elseif healthPercentage > 0.3 then
+                        healthColor = Color3.new(1, 1, 0)  -- Amarillo
+                    else
+                        healthColor = Color3.new(1, 0, 0)  -- Rojo
+                    end
+                    
+                    -- Actualizar texto
+                    nameTag.Text = string.format("%s [%d/%d]", player.Name, health, maxHealth)
+                    nameTag.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+                    nameTag.Visible = true
+                    
+                    -- Actualizar barra de vida
+                    local barWidth = 60
+                    local barHeight = 6
+                    
+                    -- Barra de fondo
+                    healthBarBg.Size = Vector2.new(barWidth, barHeight)
+                    healthBarBg.Position = Vector2.new(screenPos.X - barWidth/2, screenPos.Y - 25)
+                    healthBarBg.Visible = true
+                    
+                    -- Barra de relleno
+                    healthBarFill.Size = Vector2.new(barWidth * healthPercentage, barHeight)
+                    healthBarFill.Position = Vector2.new(screenPos.X - barWidth/2, screenPos.Y - 25)
+                    healthBarFill.Color = healthColor
+                    healthBarFill.Visible = true
+                else
+                    nameTag.Visible = false
+                    healthBarBg.Visible = false
+                    healthBarFill.Visible = false
+                end
+            else
+                highlight.Adornee = nil
+                nameTag.Visible = false
+                healthBarBg.Visible = false
+                healthBarFill.Visible = false
             end
         end
         
+        -- Conectar actualización del ESP
         local connection = RunService.RenderStepped:Connect(updateESP)
-        
-        player.CharacterAdded:Connect(function(char)
-            highlight.Parent = char
-            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
-        end)
+        table.insert(connections, connection)
         
         return {
             highlight = highlight,
             nameTag = nameTag,
+            healthBarBg = healthBarBg,
+            healthBarFill = healthBarFill,
             connection = connection
         }
     end
@@ -1160,29 +1225,67 @@ local function ESP(enabled)
         end
         
         -- Crear ESP para nuevos jugadores
-        Players.PlayerAdded:Connect(function(player)
+        local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
             espData[player] = createESP(player)
         end)
+        table.insert(connections, playerAddedConnection)
         
         -- Limpiar ESP cuando los jugadores salen
-        Players.PlayerRemoving:Connect(function(player)
+        local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
             if espData[player] then
-                espData[player].highlight:Destroy()
-                espData[player].nameTag:Destroy()
-                espData[player].connection:Disconnect()
+                if espData[player].highlight then
+                    espData[player].highlight:Destroy()
+                end
+                if espData[player].nameTag then
+                    espData[player].nameTag:Remove()
+                end
+                if espData[player].healthBarBg then
+                    espData[player].healthBarBg:Remove()
+                end
+                if espData[player].healthBarFill then
+                    espData[player].healthBarFill:Remove()
+                end
+                if espData[player].connection then
+                    espData[player].connection:Disconnect()
+                end
                 espData[player] = nil
             end
         end)
+        table.insert(connections, playerRemovingConnection)
+        
+        -- Guardar conexiones en la carpeta
+        ESPFolder:SetAttribute("ConnectionsCount", #connections)
     else
         -- Limpiar todo el ESP
         for player, data in pairs(espData) do
-            data.highlight:Destroy()
-            data.nameTag:Destroy()
-            data.connection:Disconnect()
+            if data.highlight then
+                data.highlight:Destroy()
+            end
+            if data.nameTag then
+                data.nameTag:Remove()
+            end
+            if data.healthBarBg then
+                data.healthBarBg:Remove()
+            end
+            if data.healthBarFill then
+                data.healthBarFill:Remove()
+            end
+            if data.connection then
+                data.connection:Disconnect()
+            end
             espData[player] = nil
         end
+        
+        -- Desconectar todas las conexiones
+        for _, connection in ipairs(connections) do
+            connection:Disconnect()
+        end
+        
+        -- Destruir carpeta
         ESPFolder:Destroy()
     end
+    
+    return espData
 end
 
 -- Función para Chams
