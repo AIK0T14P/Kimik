@@ -1070,40 +1070,34 @@ local function Telekinesis(enabled)
     end
 end
 
--- OPTIMIZACIÓN: Implementación mejorada del ESP con mejor persistencia
+-- COMPLETAMENTE REDISEÑADO: Sistema ESP ultra persistente
 local espFolder
-local espData = {}
-local espUpdateConnection
-local espPlayerConnections = {}
+local espObjects = {}
+local espConnections = {}
 
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
     
-    -- Limpiar ESP existente
-    if espFolder then
-        espFolder:Destroy()
-        espFolder = nil
-    end
-    
-    -- Desconectar la actualización anterior
-    if espUpdateConnection then
-        espUpdateConnection:Disconnect()
-        espUpdateConnection = nil
-    end
-    
-    -- Desconectar todas las conexiones de jugadores
-    for _, connection in pairs(espPlayerConnections) do
+    -- Limpiar conexiones existentes
+    for _, connection in pairs(espConnections) do
         if connection then connection:Disconnect() end
     end
-    espPlayerConnections = {}
+    espConnections = {}
     
-    -- Limpiar datos de ESP
-    for _, data in pairs(espData) do
-        if data.highlight then data.highlight:Destroy() end
-        if data.nameTag then data.nameTag:Destroy() end
-        if data.connection then data.connection:Disconnect() end
+    -- Limpiar objetos ESP existentes
+    for _, objects in pairs(espObjects) do
+        for _, object in pairs(objects) do
+            if object and typeof(object) == "Instance" then
+                object:Destroy()
+            end
+        end
     end
-    espData = {}
+    espObjects = {}
+    
+    -- Eliminar carpeta ESP si existe
+    if espFolder and espFolder.Parent then
+        espFolder:Destroy()
+    end
     
     if not enabled then return end
     
@@ -1112,6 +1106,7 @@ local function ESP(enabled)
     espFolder.Name = "ESPFolder"
     espFolder.Parent = game.CoreGui
     
+    -- Función para obtener el color del equipo
     local function getTeamColor(player)
         if player.Team then
             return player.Team.TeamColor.Color
@@ -1119,31 +1114,40 @@ local function ESP(enabled)
         return Color3.fromRGB(255, 0, 0)
     end
     
-    -- Crear ESP para un jugador
-    local function createESP(player)
+    -- Función para crear ESP para un jugador
+    local function createPlayerESP(player)
         if player == LocalPlayer then return end
         
-        -- Si ya existe un ESP para este jugador, limpiarlo primero
-        if espData[player.Name] then
-            if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
-            if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
-            if espData[player.Name].connection then espData[player.Name].connection:Disconnect() end
+        -- Limpiar ESP existente para este jugador
+        if espObjects[player.UserId] then
+            for _, object in pairs(espObjects[player.UserId]) do
+                if object and typeof(object) == "Instance" then
+                    object:Destroy()
+                end
+            end
         end
         
+        -- Inicializar tabla para este jugador
+        espObjects[player.UserId] = {}
+        
+        -- Crear highlight
         local highlight = Instance.new("Highlight")
-        highlight.Name = player.Name .. "Highlight"
+        highlight.Name = player.Name .. "_Highlight"
         highlight.FillColor = getTeamColor(player)
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
         highlight.FillTransparency = 0.5
         highlight.OutlineTransparency = 0
         highlight.Parent = espFolder
+        espObjects[player.UserId].highlight = highlight
         
+        -- Crear etiqueta de nombre
         local billboardGui = Instance.new("BillboardGui")
-        billboardGui.Name = player.Name .. "NameTag"
+        billboardGui.Name = player.Name .. "_NameTag"
         billboardGui.Size = UDim2.new(0, 200, 0, 50)
         billboardGui.StudsOffset = Vector3.new(0, 3, 0)
         billboardGui.AlwaysOnTop = true
         billboardGui.Parent = espFolder
+        espObjects[player.UserId].nameTag = billboardGui
         
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1, 0, 0, 20)
@@ -1154,246 +1158,544 @@ local function ESP(enabled)
         nameLabel.Font = Enum.Font.SourceSansBold
         nameLabel.TextScaled = true
         nameLabel.Parent = billboardGui
+        espObjects[player.UserId].nameLabel = nameLabel
         
-        -- Guardar datos del ESP
-        espData[player.Name] = {
-            highlight = highlight,
-            nameTag = billboardGui,
-            nameLabel = nameLabel
-        }
-        
-        -- Configurar conexión para cuando el personaje cambie (respawn)
-        local characterConnection = player.CharacterAdded:Connect(function(character)
-            -- Esperar un momento para asegurarse de que el personaje esté completamente cargado
-            task.wait(0.5)
+        -- Función para actualizar el ESP cuando el personaje cambia
+        local function updateESP()
+            if not player or not player.Parent then return end
             
-            -- Actualizar el ESP para el nuevo personaje
-            if espData[player.Name] then
-                espData[player.Name].highlight.Parent = character
-                espData[player.Name].nameTag.Parent = character:WaitForChild("HumanoidRootPart", 2)
+            local character = player.Character
+            if not character then return end
+            
+            -- Actualizar highlight
+            highlight.Parent = character
+            
+            -- Actualizar etiqueta de nombre
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                billboardGui.Parent = hrp
+                
+                -- Actualizar texto con distancia
+                local distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                
+                -- Actualizar colores
+                local teamColor = getTeamColor(player)
+                highlight.FillColor = teamColor
+                nameLabel.TextColor3 = teamColor
+            end
+        end
+        
+        -- Actualizar inmediatamente si el personaje ya existe
+        if player.Character then
+            updateESP()
+        end
+        
+        -- Conectar a CharacterAdded para cuando el jugador reaparece
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            -- Esperar a que el HumanoidRootPart esté disponible
+            local hrp = character:WaitForChild("HumanoidRootPart", 5)
+            if hrp then
+                updateESP()
             end
         end)
         
-        -- Guardar la conexión para limpiarla después
-        espData[player.Name].connection = characterConnection
-        espPlayerConnections[player.Name] = characterConnection
+        -- Guardar la conexión
+        espConnections[player.UserId .. "_characterAdded"] = characterAddedConnection
         
-        -- Aplicar ESP al personaje actual si existe
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            highlight.Parent = player.Character
-            billboardGui.Parent = player.Character.HumanoidRootPart
-        end
+        -- Conectar a CharacterRemoving para limpiar cuando el personaje es eliminado
+        local characterRemovingConnection = player.CharacterRemoving:Connect(function()
+            -- No destruir los objetos, solo desconectarlos del personaje
+            highlight.Parent = espFolder
+            billboardGui.Parent = espFolder
+        end)
+        
+        -- Guardar la conexión
+        espConnections[player.UserId .. "_characterRemoving"] = characterRemovingConnection
+        
+        return {
+            highlight = highlight,
+            nameTag = billboardGui,
+            nameLabel = nameLabel,
+            updateESP = updateESP
+        }
     end
     
-    -- Crear ESP para jugadores existentes
+    -- Crear ESP para todos los jugadores actuales
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            createESP(player)
+            createPlayerESP(player)
         end
     end
     
-    -- Crear ESP para nuevos jugadores
+    -- Conectar a PlayerAdded para nuevos jugadores
     local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createESP(player)
+        createPlayerESP(player)
     end)
+    espConnections["playerAdded"] = playerAddedConnection
     
-    -- Limpiar ESP cuando los jugadores salen
+    -- Conectar a PlayerRemoving para limpiar cuando los jugadores salen
     local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if espData[player.Name] then
-            if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
-            if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
-            if espData[player.Name].connection then espData[player.Name].connection:Disconnect() end
-            espData[player.Name] = nil
-            
-            if espPlayerConnections[player.Name] then
-                espPlayerConnections[player.Name]:Disconnect()
-                espPlayerConnections[player.Name] = nil
+        if espObjects[player.UserId] then
+            for _, object in pairs(espObjects[player.UserId]) do
+                if object and typeof(object) == "Instance" then
+                    object:Destroy()
+                end
             end
+            espObjects[player.UserId] = nil
+        end
+        
+        -- Desconectar las conexiones específicas del jugador
+        if espConnections[player.UserId .. "_characterAdded"] then
+            espConnections[player.UserId .. "_characterAdded"]:Disconnect()
+            espConnections[player.UserId .. "_characterAdded"] = nil
+        end
+        
+        if espConnections[player.UserId .. "_characterRemoving"] then
+            espConnections[player.UserId .. "_characterRemoving"]:Disconnect()
+            espConnections[player.UserId .. "_characterRemoving"] = nil
         end
     end)
+    espConnections["playerRemoving"] = playerRemovingConnection
     
-    -- Actualizar ESP con menos frecuencia (cada 0.1 segundos en lugar de cada frame)
-    espUpdateConnection = RunService.Heartbeat:Connect(function()
-        for playerName, data in pairs(espData) do
-            local player = Players:FindFirstChild(playerName)
+    -- Actualización continua para mantener el ESP siempre visible
+    local updateConnection = RunService.Heartbeat:Connect(function()
+        for userId, objects in pairs(espObjects) do
+            local player = Players:GetPlayerByUserId(userId)
             if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Asegurarse de que el ESP esté conectado al personaje correcto
-                data.highlight.Parent = player.Character
-                data.nameTag.Parent = player.Character.HumanoidRootPart
+                -- Asegurar que el highlight esté conectado al personaje
+                if objects.highlight and objects.highlight.Parent ~= player.Character then
+                    objects.highlight.Parent = player.Character
+                end
                 
-                -- Actualizar texto solo cuando es necesario (cada 0.5 segundos)
-                if tick() % 0.5 < 0.1 then
+                -- Asegurar que la etiqueta de nombre esté conectada al HumanoidRootPart
+                if objects.nameTag and objects.nameTag.Parent ~= player.Character.HumanoidRootPart then
+                    objects.nameTag.Parent = player.Character.HumanoidRootPart
+                end
+                
+                -- Actualizar la distancia y el color cada 0.5 segundos para reducir la carga
+                if tick() % 0.5 < 0.1 and objects.nameLabel then
                     local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
-                    data.highlight.FillColor = getTeamColor(player)
-                    data.nameLabel.TextColor3 = getTeamColor(player)
+                    objects.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                    
+                    local teamColor = getTeamColor(player)
+                    if objects.highlight then objects.highlight.FillColor = teamColor end
+                    if objects.nameLabel then objects.nameLabel.TextColor3 = teamColor end
                 end
             end
         end
         
         -- Verificar si hay jugadores sin ESP y aplicárselo
         for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and not espData[player.Name] then
-                createESP(player)
+            if player ~= LocalPlayer and not espObjects[player.UserId] then
+                createPlayerESP(player)
             end
         end
     end)
+    espConnections["update"] = updateConnection
     
-    -- Guardar conexiones para limpiarlas después
-    espData.playerAddedConnection = playerAddedConnection
-    espData.playerRemovingConnection = playerRemovingConnection
-    espPlayerConnections["playerAdded"] = playerAddedConnection
-    espPlayerConnections["playerRemoving"] = playerRemovingConnection
+    -- Verificación periódica para asegurar que el ESP permanezca activo
+    local verificationConnection = task.spawn(function()
+        while EnabledFeatures["ESP"] do
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    -- Si el jugador no tiene ESP o está incompleto, recrearlo
+                    if not espObjects[player.UserId] or 
+                       not espObjects[player.UserId].highlight or 
+                       not espObjects[player.UserId].nameTag then
+                        createPlayerESP(player)
+                    end
+                    
+                    -- Si el jugador tiene personaje pero el ESP no está conectado, reconectarlo
+                    if player.Character and espObjects[player.UserId] then
+                        local highlight = espObjects[player.UserId].highlight
+                        local nameTag = espObjects[player.UserId].nameTag
+                        
+                        if highlight and highlight.Parent ~= player.Character then
+                            highlight.Parent = player.Character
+                        end
+                        
+                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp and nameTag and nameTag.Parent ~= hrp then
+                            nameTag.Parent = hrp
+                        end
+                    end
+                end
+            end
+            task.wait(1) -- Verificar cada segundo
+        end
+    end)
+    espConnections["verification"] = verificationConnection
 end
 
--- Función para Chams
+-- COMPLETAMENTE REDISEÑADO: Sistema de Chams que se limpia correctamente
+local chamsFolder
+local chamsObjects = {}
+local chamsConnections = {}
+
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
-    local ChamsFolder = Instance.new("Folder")
-    ChamsFolder.Name = "ChamsFolder"
-    ChamsFolder.Parent = game.CoreGui
-
-    local function createChams(player)
+    
+    -- Limpiar conexiones existentes
+    for _, connection in pairs(chamsConnections) do
+        if connection then connection:Disconnect() end
+    end
+    chamsConnections = {}
+    
+    -- Limpiar objetos Chams existentes
+    for _, objects in pairs(chamsObjects) do
+        for _, object in pairs(objects) do
+            if object and typeof(object) == "Instance" then
+                object:Destroy()
+            end
+        end
+    end
+    chamsObjects = {}
+    
+    -- Eliminar carpeta Chams si existe
+    if chamsFolder and chamsFolder.Parent then
+        chamsFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
+    -- Crear nueva carpeta para Chams
+    chamsFolder = Instance.new("Folder")
+    chamsFolder.Name = "ChamsFolder"
+    chamsFolder.Parent = game.CoreGui
+    
+    -- Función para obtener el color del equipo
+    local function getTeamColor(player)
+        if player.Team then
+            return player.Team.TeamColor.Color
+        end
+        return Color3.fromRGB(255, 0, 0)
+    end
+    
+    -- Función para crear Chams para un jugador
+    local function createPlayerChams(player)
         if player == LocalPlayer then return end
-
+        
+        -- Limpiar Chams existentes para este jugador
+        if chamsObjects[player.UserId] then
+            for _, object in pairs(chamsObjects[player.UserId]) do
+                if object and typeof(object) == "Instance" then
+                    object:Destroy()
+                end
+            end
+        end
+        
+        -- Inicializar tabla para este jugador
+        chamsObjects[player.UserId] = {}
+        
+        -- Función para aplicar Chams a una parte
         local function applyChams(part)
+            if not part:IsA("BasePart") then return end
+            
             local chamPart = Instance.new("BoxHandleAdornment")
-            chamPart.Name = player.Name .. "Cham"
+            chamPart.Name = player.Name .. "_Cham_" .. part.Name
             chamPart.Adornee = part
             chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 9500 -- Alto ZIndex para estar por encima de todo
+            chamPart.ZIndex = 5
             chamPart.Size = part.Size
             chamPart.Transparency = 0.5
-            chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-            chamPart.Parent = ChamsFolder
+            chamPart.Color3 = getTeamColor(player)
+            chamPart.Parent = chamsFolder
+            
             return chamPart
         end
-
-        local chams = {}
-        local function updateChams()
-            if player.Character then
-                for _, part in pairs(player.Character:GetChildren()) do
-                    if part:IsA("BasePart") and not chams[part] then
-                        chams[part] = applyChams(part)
+        
+        -- Función para actualizar los Chams cuando el personaje cambia
+        local function updateChams(character)
+            if not character then return end
+            
+            -- Limpiar Chams anteriores
+            for _, cham in pairs(chamsObjects[player.UserId]) do
+                if cham and typeof(cham) == "Instance" then
+                    cham:Destroy()
+                end
+            end
+            chamsObjects[player.UserId] = {}
+            
+            -- Aplicar Chams a todas las partes del personaje
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local cham = applyChams(part)
+                    if cham then
+                        table.insert(chamsObjects[player.UserId], cham)
+                    end
+                end
+            end
+            
+            -- Conectar a DescendantAdded para nuevas partes
+            local descendantAddedConnection = character.DescendantAdded:Connect(function(descendant)
+                if descendant:IsA("BasePart") then
+                    local cham = applyChams(descendant)
+                    if cham then
+                        table.insert(chamsObjects[player.UserId], cham)
+                    end
+                end
+            end)
+            
+            -- Guardar la conexión
+            chamsConnections[player.UserId .. "_descendantAdded"] = descendantAddedConnection
+        end
+        
+        -- Actualizar inmediatamente si el personaje ya existe
+        if player.Character then
+            updateChams(player.Character)
+        end
+        
+        -- Conectar a CharacterAdded para cuando el jugador reaparece
+        local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+            updateChams(character)
+        end)
+        
+        -- Guardar la conexión
+        chamsConnections[player.UserId .. "_characterAdded"] = characterAddedConnection
+        
+        -- Conectar a CharacterRemoving para limpiar cuando el personaje es eliminado
+        local characterRemovingConnection = player.CharacterRemoving:Connect(function()
+            -- Limpiar Chams cuando el personaje es eliminado
+            for _, cham in pairs(chamsObjects[player.UserId]) do
+                if cham and typeof(cham) == "Instance" then
+                    cham:Destroy()
+                end
+            end
+            chamsObjects[player.UserId] = {}
+        end)
+        
+        -- Guardar la conexión
+        chamsConnections[player.UserId .. "_characterRemoving"] = characterRemovingConnection
+    end
+    
+    -- Crear Chams para todos los jugadores actuales
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            createPlayerChams(player)
+        end
+    end
+    
+    -- Conectar a PlayerAdded para nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        createPlayerChams(player)
+    end)
+    chamsConnections["playerAdded"] = playerAddedConnection
+    
+    -- Conectar a PlayerRemoving para limpiar cuando los jugadores salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if chamsObjects[player.UserId] then
+            for _, object in pairs(chamsObjects[player.UserId]) do
+                if object and typeof(object) == "Instance" then
+                    object:Destroy()
+                end
+            end
+            chamsObjects[player.UserId] = nil
+        end
+        
+        -- Desconectar las conexiones específicas del jugador
+        if chamsConnections[player.UserId .. "_characterAdded"] then
+            chamsConnections[player.UserId .. "_characterAdded"]:Disconnect()
+            chamsConnections[player.UserId .. "_characterAdded"] = nil
+        end
+        
+        if chamsConnections[player.UserId .. "_characterRemoving"] then
+            chamsConnections[player.UserId .. "_characterRemoving"]:Disconnect()
+            chamsConnections[player.UserId .. "_characterRemoving"] = nil
+        end
+        
+        if chamsConnections[player.UserId .. "_descendantAdded"] then
+            chamsConnections[player.UserId .. "_descendantAdded"]:Disconnect()
+            chamsConnections[player.UserId .. "_descendantAdded"] = nil
+        end
+    end)
+    chamsConnections["playerRemoving"] = playerRemovingConnection
+    
+    -- Actualización periódica para mantener los colores actualizados
+    local updateConnection = RunService.Heartbeat:Connect(function()
+        if tick() % 1 < 0.1 then  -- Actualizar cada segundo
+            for userId, objects in pairs(chamsObjects) do
+                local player = Players:GetPlayerByUserId(userId)
+                if player then
+                    local teamColor = getTeamColor(player)
+                    for _, cham in pairs(objects) do
+                        if cham and typeof(cham) == "Instance" then
+                            cham.Color3 = teamColor
+                        end
                     end
                 end
             end
         end
-
-        local connection = RunService.RenderStepped:Connect(updateChams)
-
-        player.CharacterAdded:Connect(updateChams)
-
-        return {
-            chams = chams,
-            connection = connection
-        }
-    end
-
-    local chamsData = {}
-
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                chamsData[player] = createChams(player)
-            end
-        end
-
-        Players.PlayerAdded:Connect(function(player)
-            chamsData[player] = createChams(player)
-        end)
-
-        Players.PlayerRemoving:Connect(function(player)
-            if chamsData[player] then
-                for _, cham in pairs(chamsData[player].chams) do
-                    cham:Destroy()
+    end)
+    chamsConnections["update"] = updateConnection
+    
+    -- Verificación periódica para asegurar que los Chams permanezcan activos
+    local verificationConnection = task.spawn(function()
+        while EnabledFeatures["Chams"] do
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    -- Si el jugador no tiene Chams o están incompletos, recrearlos
+                    if not chamsObjects[player.UserId] or #chamsObjects[player.UserId] == 0 then
+                        createPlayerChams(player)
+                    end
                 end
-                chamsData[player].connection:Disconnect()
-                chamsData[player] = nil
             end
-        end)
-    else
-        for player, data in pairs(chamsData) do
-            for _, cham in pairs(data.chams) do
-                cham:Destroy()
-            end
-            data.connection:Disconnect()
-            chamsData[player] = nil
+            task.wait(2) -- Verificar cada 2 segundos
         end
-        ChamsFolder:Destroy()
-    end
+    end)
+    chamsConnections["verification"] = verificationConnection
 end
 
--- Función para Tracers
+-- COMPLETAMENTE REDISEÑADO: Sistema de Tracers que siempre apunta al cuerpo
+local tracersFolder
+local tracersObjects = {}
+local tracersConnections = {}
+
 local function Tracers(enabled)
     EnabledFeatures["Tracers"] = enabled
-    local TracersFolder = Instance.new("Folder")
-    TracersFolder.Name = "TracersFolder"
-    TracersFolder.Parent = game.CoreGui
-
-    local function createTracer(player)
+    
+    -- Limpiar conexiones existentes
+    for _, connection in pairs(tracersConnections) do
+        if connection then connection:Disconnect() end
+    end
+    tracersConnections = {}
+    
+    -- Limpiar objetos Tracers existentes
+    for _, objects in pairs(tracersObjects) do
+        if objects.tracer and typeof(objects.tracer) == "table" and objects.tracer.Remove then
+            objects.tracer:Remove()
+        end
+    end
+    tracersObjects = {}
+    
+    -- Eliminar carpeta Tracers si existe
+    if tracersFolder and tracersFolder.Parent then
+        tracersFolder:Destroy()
+    end
+    
+    if not enabled then return end
+    
+    -- Crear nueva carpeta para Tracers
+    tracersFolder = Instance.new("Folder")
+    tracersFolder.Name = "TracersFolder"
+    tracersFolder.Parent = game.CoreGui
+    
+    -- Función para obtener el color del equipo
+    local function getTeamColor(player)
+        if player.Team then
+            return player.Team.TeamColor.Color
+        end
+        return Color3.fromRGB(255, 0, 0)
+    end
+    
+    -- Función para crear un Tracer para un jugador
+    local function createPlayerTracer(player)
         if player == LocalPlayer then return end
-
+        
+        -- Limpiar Tracer existente para este jugador
+        if tracersObjects[player.UserId] and tracersObjects[player.UserId].tracer then
+            tracersObjects[player.UserId].tracer:Remove()
+        end
+        
+        -- Crear nuevo Tracer
         local tracer = Drawing.new("Line")
         tracer.Visible = false
-        tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-        tracer.Thickness = 1
+        tracer.Color = getTeamColor(player)
+        tracer.Thickness = 1.5
         tracer.Transparency = 1
-
+        
+        -- Guardar el Tracer
+        tracersObjects[player.UserId] = {
+            tracer = tracer,
+            player = player
+        }
+        
+        -- Función para actualizar el Tracer
         local function updateTracer()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(vector.X, vector.Y)
-                    tracer.Visible = true
-                else
-                    tracer.Visible = false
-                end
+            if not player or not player.Character then
+                tracer.Visible = false
+                return
+            end
+            
+            -- Buscar una parte válida para apuntar (preferiblemente el torso o la cabeza)
+            local targetPart = player.Character:FindFirstChild("HumanoidRootPart") or 
+                              player.Character:FindFirstChild("Torso") or 
+                              player.Character:FindFirstChild("UpperTorso") or
+                              player.Character:FindFirstChild("Head")
+            
+            if not targetPart then
+                tracer.Visible = false
+                return
+            end
+            
+            -- Convertir la posición 3D a posición 2D en la pantalla
+            local vector, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+            
+            if onScreen then
+                -- Origen del tracer (parte inferior central de la pantalla)
+                tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                
+                -- Destino del tracer (posición del jugador en la pantalla)
+                tracer.To = Vector2.new(vector.X, vector.Y)
+                
+                -- Actualizar color y visibilidad
+                tracer.Color = getTeamColor(player)
+                tracer.Visible = true
             else
                 tracer.Visible = false
             end
         end
-
-        local connection = RunService.RenderStepped:Connect(updateTracer)
-
+        
         return {
             tracer = tracer,
-            connection = connection
+            updateTracer = updateTracer
         }
     end
-
-    local tracersData = {}
-
-    if enabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                tracersData[player] = createTracer(player)
-            end
+    
+    -- Crear Tracers para todos los jugadores actuales
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            createPlayerTracer(player)
         end
-
-        Players.PlayerAdded:Connect(function(player)
-            tracersData[player] = createTracer(player)
-        end)
-
-        Players.PlayerRemoving:Connect(function(player)
-            if tracersData[player] then
-                tracersData[player].tracer:Remove()
-                tracersData[player].connection:Disconnect()
-                tracersData[player] = nil
-            end
-        end)
-    else
-        for player, data in pairs(tracersData) do
-            data.tracer:Remove()
-            data.connection:Disconnect()
-            tracersData[player] = nil
-        end
-        TracersFolder:Destroy()
     end
+    
+    -- Conectar a PlayerAdded para nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        createPlayerTracer(player)
+    end)
+    tracersConnections["playerAdded"] = playerAddedConnection
+    
+    -- Conectar a PlayerRemoving para limpiar cuando los jugadores salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if tracersObjects[player.UserId] and tracersObjects[player.UserId].tracer then
+            tracersObjects[player.UserId].tracer:Remove()
+            tracersObjects[player.UserId] = nil
+        end
+    end)
+    tracersConnections["playerRemoving"] = playerRemovingConnection
+    
+    -- Actualización continua para mantener los Tracers siempre visibles
+    local updateConnection = RunService.RenderStepped:Connect(function()
+        for userId, objects in pairs(tracersObjects) do
+            local player = Players:GetPlayerByUserId(userId)
+            if player then
+                -- Actualizar el Tracer
+                if objects.updateTracer then
+                    objects.updateTracer()
+                end
+            end
+        end
+        
+        -- Verificar si hay jugadores sin Tracer y aplicárselo
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and not tracersObjects[player.UserId] then
+                createPlayerTracer(player)
+            end
+        end
+    end)
+    tracersConnections["update"] = updateConnection
 end
 
--- Función para Fullbright
 local function Fullbright(enabled)
     EnabledFeatures["Fullbright"] = enabled
     if enabled then
@@ -1782,6 +2084,7 @@ end)
 -- Mensaje de confirmación
 print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
-print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander y ESP optimizados.")
-print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
-print("El ESP ha sido mejorado para permanecer visible en todos los jugadores, incluso después de que mueran varias veces.")
+print("Las funciones ahora persisten después de morir y reaparecer.")
+print("El ESP ha sido completamente rediseñado para permanecer visible en todos los jugadores, incluso después de que mueran varias veces.")
+print("Las siluetas (Chams) ahora se limpian correctamente cuando un jugador muere.")
+print("Los trazadores (Tracers) ahora siempre apuntan al cuerpo del jugador independientemente de la distancia.")
