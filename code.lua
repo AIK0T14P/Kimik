@@ -958,7 +958,7 @@ local function HitboxExpander(enabled)
         if enabled then
             hrp.Size = Vector3.new(10, 10, 10)
             hrp.Transparency = 0.5
-            hrp.CanCollide = false
+            hrp.CanCollide = false -- Prevenir problemas de colisión
         else
             -- Restaurar valores originales
             local cache = hitboxCache[player.Name]
@@ -981,7 +981,7 @@ local function HitboxExpander(enabled)
         -- Configurar conexiones solo cuando está habilitado
         hitboxConnections.playerAdded = Players.PlayerAdded:Connect(function(player)
             hitboxConnections[player.Name] = player.CharacterAdded:Connect(function()
-                task.wait(0.5)
+                task.wait(0.5) -- Pequeña espera para asegurar que el HumanoidRootPart esté cargado
                 expandHitbox(player)
             end)
         end)
@@ -1410,7 +1410,7 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
-    {name = "WallRun", callback = WallRun},
+    {name = "WallRun", callback = function() end},
     {name = "Levitation", callback = Levitation}
 }
 
@@ -1457,7 +1457,6 @@ local OptimizationFeatures = {
             game:GetService("Lighting").GlobalShadows = false
             game:GetService("Lighting").Technology = Enum.Technology.Compatibility
             for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:  do
                 if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
                     v.Enabled = false
                 end
@@ -1681,7 +1680,7 @@ local function SetupRespawnPersistence()
                 elseif feature == "AntiAim" then
                     AntiAim(true)
                 elseif feature == "HitboxExpander" then
-                    -- HitboxExpander ya es persistente con la implementación mejorada
+                    HitboxExpander(true)
                 elseif feature == "ESP" then
                     ESP(true)
                 elseif feature == "Chams" then
