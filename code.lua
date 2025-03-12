@@ -1072,63 +1072,100 @@ local function Telekinesis(enabled)
     end
 end
 
--- Implementación mejorada del ESP con colores de equipodata in pairs(espData) do
-local function createESP(player)
-    local character = player.Character or player.CharacterAdded:Wait()
-    local highlight = Instance.new("Highlight", ESPFolder)
-    highlight.Adornee = character
-    highlight.FillColor = Color3.fromRGB(255, 0, 0)  -- Rojo
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)  -- Blanco
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+-- Implementación mejorada del ESP con colores de equipo
+local function ESP(enabled)
+    EnabledFeatures["ESP"] = enabled
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "ESPFolder"
+    ESPFolder.Parent = game.CoreGui
     
-    local nameTag = Instance.new("BillboardGui")
-    nameTag.Adornee = character:FindFirstChild("Head")
-    nameTag.Size = UDim2.new(0, 200, 0, 50)
-    nameTag.StudsOffset = Vector3.new(0, 2, 0)
-    nameTag.Parent = ESPFolder
-
-    local textLabel = Instance.new("TextLabel", nameTag)
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textLabel.TextStrokeTransparency = 0
-    textLabel.Font = Enum.Font.SourceSansBold
-    textLabel.TextSize = 16
-    textLabel.Text = player.Name
-
-    -- Conectar a CharacterAdded para actualizar ESP si el personaje cambia
-    local connection = player.CharacterAdded:Connect(function(newCharacter)
-        highlight.Adornee = newCharacter
-        nameTag.Adornee = newCharacter:FindFirstChild("Head")
-    end)
-
-    return {
-        highlight = highlight,
-        nameTag = nameTag,
-        connection = connection
-    }
-end
-
--- Función para añadir ESP si no existe ya
-local function addESP(player)
-    if player ~= LocalPlayer and not espData[player] then
-        espData[player] = createESP(player)
+    local function getTeamColor(player)
+        if player.Team then
+            return player.Team.TeamColor.Color
+        end
+        return Color3.fromRGB(255, 0, 0) -- Color por defecto si no tiene equipo
     end
-end
-
-if enabled then
-    -- Crear ESP para jugadores existentes
-    for _, player in pairs(Players:GetPlayers()) do
-        addESP(player)
+    
+    local function createESP(player)
+        if player == LocalPlayer then return end
+        
+        local function createBoxHighlight()
+            local highlight = Instance.new("Highlight")
+            highlight.Name = player.Name .. "Highlight"
+            highlight.FillColor = getTeamColor(player)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Parent = ESPFolder
+            return highlight
+        end
+        
+        local function createNameTag()
+            local billboardGui = Instance.new("BillboardGui")
+            billboardGui.Name = player.Name .. "NameTag"
+            billboardGui.Size = UDim2.new(0, 200, 0, 50)
+            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+            billboardGui.AlwaysOnTop = true
+            billboardGui.Parent = ESPFolder
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 0, 20)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = getTeamColor(player)
+            nameLabel.TextStrokeTransparency = 0
+            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            nameLabel.Font = Enum.Font.SourceSansBold
+            nameLabel.TextScaled = true
+            nameLabel.Parent = billboardGui
+            
+            return billboardGui, nameLabel
+        end
+        
+        local highlight = createBoxHighlight()
+        local nameTag, nameLabel = createNameTag()
+        
+        local function updateESP()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Parent = player.Character
+                nameTag.Parent = player.Character.HumanoidRootPart
+                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
+                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                highlight.FillColor = getTeamColor(player)
+                nameLabel.TextColor3 = getTeamColor(player)
+            end
+        end
+        
+        local connection = RunService.RenderStepped:Connect(updateESP)
+        
+        player.CharacterAdded:Connect(function(char)
+            highlight.Parent = char
+            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
+        end)
+        
+        return {
+            highlight = highlight,
+            nameTag = nameTag,
+            connection = connection
+        }
     end
-
-    -- Conectar eventos solo una vez
-    if not espConnections["PlayerAdded"] then
-        espConnections["PlayerAdded"] = Players.PlayerAdded:Connect(addESP)
-    end
-
-    if not espConnections["PlayerRemoving"] then
-        espConnections["PlayerRemoving"] = Players.PlayerRemoving:Connect(function(player)
+    
+    local espData = {}
+    
+    if enabled then
+        -- Crear ESP para jugadores existentes
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                espData[player] = createESP(player)
+            end
+        end
+        
+        -- Crear ESP para nuevos jugadores
+        Players.PlayerAdded:Connect(function(player)
+            espData[player] = createESP(player)
+        end)
+        
+        -- Limpiar ESP cuando los jugadores salen
+        Players.PlayerRemoving:Connect(function(player)
             if espData[player] then
                 espData[player].highlight:Destroy()
                 espData[player].nameTag:Destroy()
@@ -1136,27 +1173,16 @@ if enabled then
                 espData[player] = nil
             end
         end)
-    end
-else
-    -- Limpiar todo el ESP
-    for _, data in pairs(espData) do
-        data.highlight:Destroy()
-        data.nameTag:Destroy()
-        data.connection:Disconnect()
-    end
-    table.clear(espData)
-
-    -- Destruir la carpeta ESP si existe
-    if ESPFolder then
+    else
+        -- Limpiar todo el ESP
+        for player, data in pairs(espData) do
+            data.highlight:Destroy()
+            data.nameTag:Destroy()
+            data.connection:Disconnect()
+            espData[player] = nil
+        end
         ESPFolder:Destroy()
     end
-
-    -- Desconectar eventos
-    for _, conn in pairs(espConnections) do
-        conn:Disconnect()
-    end
-    table.clear(espConnections)
-   end
 end
 
 -- Función para Chams
