@@ -1282,15 +1282,20 @@ local function Tracers(enabled)
             if player.Character and EnabledFeatures["Tracers"] then
                 local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("HumanoidRootPart")
                 if torso then
-                    -- Obtener la posición del torso y convertirla a coordenadas de pantalla
+                    -- Obtener la posición del torso en el mundo 3D
                     local torsoPosition = torso.Position
-                    local vector, onScreen = Camera:WorldToScreenPoint(torsoPosition)
+                    
+                    -- Importante: Necesitamos un punto de referencia fijo para la línea
+                    local bottomScreenPos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    
+                    -- Convertir la posición del torso a coordenadas de pantalla
+                    local torsoScreenPos, onScreen = Camera:WorldToViewportPoint(torsoPosition)
                     
                     if onScreen then
-                        -- Usar el centro de la pantalla como origen del trazado
-                        tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        -- Usar directamente las coordenadas X e Y sin que la profundidad afecte
-                        tracer.To = Vector2.new(vector.X, vector.Y)
+                        -- Lo importante aquí es usar WorldToViewportPoint en lugar de WorldToScreenPoint
+                        -- y usar los valores X e Y directamente como Vector2
+                        tracer.From = bottomScreenPos
+                        tracer.To = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
                         tracer.Visible = true
                     else
                         tracer.Visible = false
