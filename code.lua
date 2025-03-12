@@ -1280,13 +1280,13 @@ local function Tracers(enabled)
         tracer.Transparency = 1
 
         local function updateTracer()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Usar la posición del UpperTorso (o HumanoidRootPart) para obtener la posición central del cuerpo
+            if player.Character then
                 local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("HumanoidRootPart")
                 if torso then
-                    local vector, onScreen = Camera:WorldToScreenPoint(torso.Position)  -- Siempre usa la posición del torso
+                    -- Obtener la posición de los huesos centrales (torso o humanoide)
+                    local vector, onScreen = Camera:WorldToScreenPoint(torso.Position)
                     if onScreen then
-                        -- Coloca el trazado desde el centro de la pantalla
+                        -- Usar el centro de la pantalla como origen del trazado
                         tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                         tracer.To = Vector2.new(vector.X, vector.Y)
                         tracer.Visible = true
