@@ -1076,13 +1076,34 @@ end
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
     
-    -- Crear o limpiar la carpeta ESP
-    local ESPFolder = Instance.new("Folder")
-    ESPFolder.Name = "ESPFolder"
-    ESPFolder.Parent = game.CoreGui
+    -- Limpiar ESP anterior si existe
+    if game.CoreGui:FindFirstChild("ESPFolder") then
+        game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
+    end
     
-    -- Mantener un seguimiento de todas las conexiones
+    -- Crear carpeta ESP solo si está habilitado
+    local ESPFolder
+    if enabled then
+        ESPFolder = Instance.new("Folder")
+        ESPFolder.Name = "ESPFolder"
+        ESPFolder.Parent = game.CoreGui
+    else
+        -- Si se está desactivando, asegurarnos de que todos los elementos visuales se eliminen
+        for _, object in pairs(game.CoreGui:GetDescendants()) do
+            if object.Name:match("_ESP") or object.Name:match("_Highlight") then
+                object:Destroy()
+            end
+        end
+        
+        -- Eliminar todos los Drawing objects que puedan existir
+        -- (No hay una forma directa de hacer esto, pero podemos asegurarnos de que
+        -- nuestra implementación no deje objetos huérfanos)
+        return
+    end
+    
+    -- Mantener un seguimiento de todas las conexiones y objetos
     local connections = {}
+    local drawingObjects = {}
     
     local function createESP(player)
         if player == LocalPlayer then return end
@@ -1102,26 +1123,30 @@ local function ESP(enabled)
         nameTag.Visible = false
         nameTag.Center = true
         nameTag.Outline = true
-        nameTag.Size = 18
+        nameTag.Size = 18  -- Tamaño fijo
         nameTag.Color = Color3.new(1, 0, 0)  -- Rojo para el nombre
         nameTag.OutlineColor = Color3.new(0, 0, 0)
+        table.insert(drawingObjects, nameTag)
         
         -- Crear etiqueta de vida (texto verde)
         local healthTag = Drawing.new("Text")
         healthTag.Visible = false
-        healthTag.Center = false  -- No centrado para alinearlo al lado del nombre
+        healthTag.Center = false
         healthTag.Outline = true
-        healthTag.Size = 18
+        healthTag.Size = 18  -- Tamaño fijo
         healthTag.Color = Color3.new(0, 1, 0)  -- Verde para la vida
         healthTag.OutlineColor = Color3.new(0, 0, 0)
+        table.insert(drawingObjects, healthTag)
         
         -- Variable para controlar la tasa de actualización
         local lastUpdateTime = tick()
-        local updateInterval = 0.05  -- Actualizar 20 veces por segundo en lugar de cada frame
+        local updateInterval = 0.05  -- 20 actualizaciones por segundo
         
         local function updateESP()
             -- Solo actualizar si ESP está habilitado
             if not EnabledFeatures["ESP"] then
+                nameTag.Visible = false
+                healthTag.Visible = false
                 return
             end
             
@@ -1132,44 +1157,47 @@ local function ESP(enabled)
             end
             lastUpdateTime = currentTime
             
-            if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
-                local humanoid = player.Character.Humanoid
-                local rootPart = player.Character.HumanoidRootPart
-                local head = player.Character:FindFirstChild("Head")
-                
-                -- Actualizar adornee del highlight
-                if highlight.Adornee ~= player.Character then
-                    highlight.Adornee = player.Character
-                end
-                
-                -- Obtener posición en pantalla para la etiqueta
-                local headPos = head and head.Position or rootPart.Position + Vector3.new(0, 1, 0)
-                local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
-                
-                if onScreen then
-                    -- Actualizar etiqueta de nombre
-                    nameTag.Text = player.Name
-                    nameTag.Position = Vector2.new(screenPos.X, screenPos.Y - 30)
-                    nameTag.Visible = true
-                    
-                    -- Calcular valores de vida
-                    local health = math.floor(humanoid.Health)
-                    local maxHealth = math.floor(humanoid.MaxHealth)
-                    
-                    -- Actualizar etiqueta de vida
-                    healthTag.Text = string.format(" %d/%d", health, maxHealth)
-                    
-                    -- Posicionar la etiqueta de vida al lado del nombre
-                    -- Calcular el ancho aproximado del texto del nombre (ajustar si es necesario)
-                    local nameWidth = #player.Name * 8  -- Aproximación del ancho
-                    healthTag.Position = Vector2.new(screenPos.X + (nameWidth/2), screenPos.Y - 30)
-                    healthTag.Visible = true
-                else
-                    nameTag.Visible = false
-                    healthTag.Visible = false
-                end
-            else
+            -- Verificar si el jugador tiene un personaje válido
+            if not player or not player.Character or not player.Character:FindFirstChild("Humanoid") or not player.Character:FindFirstChild("Head") then
+                nameTag.Visible = false
+                healthTag.Visible = false
                 highlight.Adornee = nil
+                return
+            end
+            
+            local humanoid = player.Character.Humanoid
+            local head = player.Character.Head
+            
+            -- Actualizar adornee del highlight
+            if highlight.Adornee ~= player.Character then
+                highlight.Adornee = player.Character
+            end
+            
+            -- Obtener posición en pantalla para la cabeza
+            local headPos = head.Position + Vector3.new(0, 1, 0)  -- Ajuste para que esté encima de la cabeza
+            local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
+            
+            if onScreen then
+                -- Calcular distancia desde la cámara al jugador
+                local distance = (Camera.CFrame.Position - head.Position).Magnitude
+                
+                -- Actualizar etiqueta de nombre
+                nameTag.Text = player.Name
+                nameTag.Position = Vector2.new(screenPos.X, screenPos.Y)
+                nameTag.Visible = true
+                
+                -- Calcular valores de vida
+                local health = math.floor(humanoid.Health)
+                local maxHealth = math.floor(humanoid.MaxHealth)
+                
+                -- Actualizar etiqueta de vida
+                healthTag.Text = string.format(" %d/%d", health, maxHealth)
+                
+                -- Calcular el ancho aproximado del texto del nombre
+                local nameWidth = #player.Name * 8
+                healthTag.Position = Vector2.new(screenPos.X + (nameWidth/2), screenPos.Y)
+                healthTag.Visible = true
+            else
                 nameTag.Visible = false
                 healthTag.Visible = false
             end
@@ -1223,36 +1251,71 @@ local function ESP(enabled)
         end)
         table.insert(connections, playerRemovingConnection)
         
-        -- Guardar conexiones en la carpeta
-        ESPFolder:SetAttribute("ConnectionsCount", #connections)
-    else
-        -- Limpiar todo el ESP
-        for player, data in pairs(espData) do
-            if data.highlight then
-                data.highlight:Destroy()
+        -- Cuando se desactiva el ESP (por ejemplo, con una tecla)
+        local function cleanupESP()
+            if not EnabledFeatures["ESP"] then
+                -- Limpiar todo el ESP
+                for player, data in pairs(espData) do
+                    if data.highlight then
+                        data.highlight:Destroy()
+                    end
+                    if data.nameTag then
+                        data.nameTag.Visible = false
+                        data.nameTag:Remove()
+                    end
+                    if data.healthTag then
+                        data.healthTag.Visible = false
+                        data.healthTag:Remove()
+                    end
+                    if data.connection then
+                        data.connection:Disconnect()
+                    end
+                    espData[player] = nil
+                end
+                
+                -- Desconectar todas las conexiones
+                for _, connection in ipairs(connections) do
+                    connection:Disconnect()
+                end
+                
+                -- Limpiar todos los objetos Drawing
+                for _, obj in ipairs(drawingObjects) do
+                    obj.Visible = false
+                    obj:Remove()
+                end
+                
+                -- Destruir carpeta
+                if ESPFolder and ESPFolder.Parent then
+                    ESPFolder:Destroy()
+                end
             end
-            if data.nameTag then
-                data.nameTag:Remove()
-            end
-            if data.healthTag then
-                data.healthTag:Remove()
-            end
-            if data.connection then
-                data.connection:Disconnect()
-            end
-            espData[player] = nil
         end
         
-        -- Desconectar todas las conexiones
-        for _, connection in ipairs(connections) do
-            connection:Disconnect()
-        end
+        -- Conectar función de limpieza (puedes llamarla cuando el usuario desactiva ESP)
+        local gameExitConnection = game:BindToClose(cleanupESP)
+        table.insert(connections, gameExitConnection)
         
-        -- Destruir carpeta
-        ESPFolder:Destroy()
+        -- Exponer función de limpieza
+        ESPFolder:SetAttribute("CleanupFunction", true)
+        _G.CleanupESP = cleanupESP
     end
     
     return espData
+end
+
+-- Para garantizar la desactivación correcta
+local function DisableESP()
+    EnabledFeatures["ESP"] = false
+    
+    -- Llamar a la función de limpieza si existe
+    if _G.CleanupESP then
+        _G.CleanupESP()
+    end
+    
+    -- Eliminar cualquier objeto Drawing que quede
+    if game.CoreGui:FindFirstChild("ESPFolder") then
+        game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
+    end
 end
 
 -- Función para Chams
