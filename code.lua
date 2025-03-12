@@ -1297,7 +1297,7 @@ else
         tracersData[player] = nil
     end
     TracersFolder:Destroy()
-end
+   end
 
 end
 
