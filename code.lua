@@ -40,6 +40,7 @@ local EnabledFeatures = {}
 local Languages = {
     ["Español"] = {
         categories = {
+            Homenaje = "Lugar",
             Movement = "Movimiento",
             Combat = "Combate",
             Visuals = "Visuales",
