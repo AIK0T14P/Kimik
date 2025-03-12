@@ -926,49 +926,16 @@ local function AntiAim(enabled)
     end
 end
 
--- OPTIMIZACIÓN: Función mejorada de HitboxExpander para reducir el uso de recursos
-local hitboxCache = {}
-local hitboxConnections = {}
-
+-- Función mejorada de HitboxExpander para que persista cuando los jugadores mueren y reaparecen
 local function HitboxExpander(enabled)
     EnabledFeatures["HitboxExpander"] = enabled
     
-    -- Limpiar conexiones existentes
-    for _, connection in pairs(hitboxConnections) do
-        if connection then connection:Disconnect() end
-    end
-    hitboxConnections = {}
-    
     -- Función para expandir el hitbox de un jugador
     local function expandHitbox(player)
-        if player == LocalPlayer or not player.Character then return end
-        
-        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        -- Usar caché para evitar cambios innecesarios
-        if not hitboxCache[player.Name] then
-            hitboxCache[player.Name] = {
-                originalSize = hrp.Size,
-                originalTransparency = hrp.Transparency
-            }
-        end
-        
-        -- Aplicar cambios solo si son necesarios
-        if enabled then
-            hrp.Size = Vector3.new(10, 10, 10)
-            hrp.Transparency = 0.5
-            hrp.CanCollide = false -- Prevenir problemas de colisión
-        else
-            -- Restaurar valores originales
-            local cache = hitboxCache[player.Name]
-            if cache then
-                hrp.Size = cache.originalSize
-                hrp.Transparency = cache.originalTransparency
-            else
-                hrp.Size = Vector3.new(2, 2, 1)
-                hrp.Transparency = 1
-            end
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
+            player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
+            player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
         end
     end
     
@@ -977,10 +944,18 @@ local function HitboxExpander(enabled)
         expandHitbox(player)
     end
     
+    -- Conexiones para mantener el hitbox expandido
+    local playerAddedConnection
+    local playerRemovingConnection
+    local characterAddedConnections = {}
+    
     if enabled then
-        -- Configurar conexiones solo cuando está habilitado
-        hitboxConnections.playerAdded = Players.PlayerAdded:Connect(function(player)
-            hitboxConnections[player.Name] = player.CharacterAdded:Connect(function()
+        -- Cuando se activa, configurar todas las conexiones necesarias
+        
+        -- Para jugadores nuevos que se unen
+        playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+            -- Cuando un jugador se une, configurar la conexión para cuando su personaje aparezca
+            characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
                 task.wait(0.5) -- Pequeña espera para asegurar que el HumanoidRootPart esté cargado
                 expandHitbox(player)
             end)
@@ -989,26 +964,53 @@ local function HitboxExpander(enabled)
         -- Para jugadores existentes cuando reaparecen
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                hitboxConnections[player.Name] = player.CharacterAdded:Connect(function()
+                characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
                     task.wait(0.5)
                     expandHitbox(player)
                 end)
             end
         end
         
-        -- Verificar periódicamente pero con menos frecuencia (cada 2 segundos en lugar de cada segundo)
-        hitboxConnections.update = task.spawn(function()
+        -- Limpiar conexiones cuando un jugador se va
+        playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+            if characterAddedConnections[player] then
+                characterAddedConnections[player]:Disconnect()
+                characterAddedConnections[player] = nil
+            end
+        end)
+        
+        -- Ejecutar periódicamente para asegurar que todos los hitboxes estén expandidos
+        spawn(function()
             while EnabledFeatures["HitboxExpander"] do
                 for _, player in pairs(Players:GetPlayers()) do
                     expandHitbox(player)
                 end
-                task.wait(2)
+                task.wait(1) -- Verificar cada segundo
             end
         end)
     else
+        -- Cuando se desactiva, limpiar todas las conexiones
+        if playerAddedConnection then
+            playerAddedConnection:Disconnect()
+            playerAddedConnection = nil
+        end
+        
+        if playerRemovingConnection then
+            playerRemovingConnection:Disconnect()
+            playerRemovingConnection = nil
+        end
+        
+        for player, connection in pairs(characterAddedConnections) do
+            connection:Disconnect()
+            characterAddedConnections[player] = nil
+        end
+        
         -- Restaurar hitboxes normales
         for _, player in pairs(Players:GetPlayers()) do
-            expandHitbox(player)
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                player.Character.HumanoidRootPart.Transparency = 1
+            end
         end
     end
 end
@@ -1070,127 +1072,117 @@ local function Telekinesis(enabled)
     end
 end
 
--- OPTIMIZACIÓN: Implementación mejorada del ESP con mejor rendimiento
-local espFolder
-local espData = {}
-local espUpdateConnection
-
+-- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
-    
-    -- Limpiar ESP existente
-    if espFolder then
-        espFolder:Destroy()
-        espFolder = nil
-    end
-    
-    -- Desconectar la actualización anterior
-    if espUpdateConnection then
-        espUpdateConnection:Disconnect()
-        espUpdateConnection = nil
-    end
-    
-    -- Limpiar datos de ESP
-    for _, data in pairs(espData) do
-        if data.highlight then data.highlight:Destroy() end
-        if data.nameTag then data.nameTag:Destroy() end
-        if data.connection then data.connection:Disconnect() end
-    end
-    espData = {}
-    
-    if not enabled then return end
-    
-    -- Crear nueva carpeta para ESP
-    espFolder = Instance.new("Folder")
-    espFolder.Name = "ESPFolder"
-    espFolder.Parent = game.CoreGui
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "ESPFolder"
+    ESPFolder.Parent = game.CoreGui
     
     local function getTeamColor(player)
         if player.Team then
             return player.Team.TeamColor.Color
         end
-        return Color3.fromRGB(255, 0, 0)
+        return Color3.fromRGB(255, 0, 0) -- Color por defecto si no tiene equipo
     end
     
-    -- Crear ESP para un jugador
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        local highlight = Instance.new("Highlight")
-        highlight.Name = player.Name .. "Highlight"
-        highlight.FillColor = getTeamColor(player)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-        highlight.Parent = espFolder
+        local function createBoxHighlight()
+            local highlight = Instance.new("Highlight")
+            highlight.Name = player.Name .. "Highlight"
+            highlight.FillColor = getTeamColor(player)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Parent = ESPFolder
+            return highlight
+        end
         
-        local billboardGui = Instance.new("BillboardGui")
-        billboardGui.Name = player.Name .. "NameTag"
-        billboardGui.Size = UDim2.new(0, 200, 0, 50)
-        billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-        billboardGui.AlwaysOnTop = true
-        billboardGui.Parent = espFolder
+        local function createNameTag()
+            local billboardGui = Instance.new("BillboardGui")
+            billboardGui.Name = player.Name .. "NameTag"
+            billboardGui.Size = UDim2.new(0, 200, 0, 50)
+            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+            billboardGui.AlwaysOnTop = true
+            billboardGui.Parent = ESPFolder
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 0, 20)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = getTeamColor(player)
+            nameLabel.TextStrokeTransparency = 0
+            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            nameLabel.Font = Enum.Font.SourceSansBold
+            nameLabel.TextScaled = true
+            nameLabel.Parent = billboardGui
+            
+            return billboardGui, nameLabel
+        end
         
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Size = UDim2.new(1, 0, 0, 20)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.TextColor3 = getTeamColor(player)
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        nameLabel.Font = Enum.Font.SourceSansBold
-        nameLabel.TextScaled = true
-        nameLabel.Parent = billboardGui
+        local highlight = createBoxHighlight()
+        local nameTag, nameLabel = createNameTag()
         
-        espData[player.Name] = {
+        local function updateESP()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Parent = player.Character
+                nameTag.Parent = player.Character.HumanoidRootPart
+                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
+                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                highlight.FillColor = getTeamColor(player)
+                nameLabel.TextColor3 = getTeamColor(player)
+            end
+        end
+        
+        local connection = RunService.RenderStepped:Connect(updateESP)
+        
+        player.CharacterAdded:Connect(function(char)
+            highlight.Parent = char
+            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
+        end)
+        
+        return {
             highlight = highlight,
-            nameTag = billboardGui,
-            nameLabel = nameLabel
+            nameTag = nameTag,
+            connection = connection
         }
     end
     
-    -- Crear ESP para jugadores existentes
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            createESP(player)
-        end
-    end
+    local espData = {}
     
-    -- Crear ESP para nuevos jugadores
-    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createESP(player)
-    end)
-    
-    -- Limpiar ESP cuando los jugadores salen
-    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if espData[player.Name] then
-            if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
-            if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
-            espData[player.Name] = nil
-        end
-    end)
-    
-    -- Actualizar ESP con menos frecuencia (cada 0.1 segundos en lugar de cada frame)
-    espUpdateConnection = RunService.Heartbeat:Connect(function()
-        for playerName, data in pairs(espData) do
-            local player = Players:FindFirstChild(playerName)
-            if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                data.highlight.Parent = player.Character
-                data.nameTag.Parent = player.Character.HumanoidRootPart
-                
-                -- Actualizar texto solo cuando es necesario (cada 10 frames)
-                if tick() % 0.5 < 0.1 then
-                    local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
-                    data.highlight.FillColor = getTeamColor(player)
-                    data.nameLabel.TextColor3 = getTeamColor(player)
-                end
+    if enabled then
+        -- Crear ESP para jugadores existentes
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                espData[player] = createESP(player)
             end
         end
-    end)
-    
-    -- Guardar conexiones para limpiarlas después
-    espData.playerAddedConnection = playerAddedConnection
-    espData.playerRemovingConnection = playerRemovingConnection
+        
+        -- Crear ESP para nuevos jugadores
+        Players.PlayerAdded:Connect(function(player)
+            espData[player] = createESP(player)
+        end)
+        
+        -- Limpiar ESP cuando los jugadores salen
+        Players.PlayerRemoving:Connect(function(player)
+            if espData[player] then
+                espData[player].highlight:Destroy()
+                espData[player].nameTag:Destroy()
+                espData[player].connection:Disconnect()
+                espData[player] = nil
+            end
+        end)
+    else
+        -- Limpiar todo el ESP
+        for player, data in pairs(espData) do
+            data.highlight:Destroy()
+            data.nameTag:Destroy()
+            data.connection:Disconnect()
+            espData[player] = nil
+        end
+        ESPFolder:Destroy()
+    end
 end
 
 -- Función para Chams
@@ -1313,48 +1305,6 @@ local function Tracers(enabled)
     local tracersData = {}
 
     if enabled then
--- Función para Tracers
-local function Tracers(enabled)
-    EnabledFeatures["Tracers"] = enabled
-    local TracersFolder = Instance.new("Folder")
-    TracersFolder.Name = "TracersFolder"
-    TracersFolder.Parent = game.CoreGui
-
-    local function createTracer(player)
-        if player == LocalPlayer then return end
-
-        local tracer = Drawing.new("Line")
-        tracer.Visible = false
-        tracer.Color = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-        tracer.Thickness = 1
-        tracer.Transparency = 1
-
-        local function updateTracer()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                    tracer.To = Vector2.new(vector.X, vector.Y)
-                    tracer.Visible = true
-                else
-                    tracer.Visible = false
-                end
-            else
-                tracer.Visible = false
-            end
-        end
-
-        local connection = RunService.RenderStepped:Connect(updateTracer)
-
-        return {
-            tracer = tracer,
-            connection = connection
-        }
-    end
-
-    local tracersData = {}
-
-    if enabled then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 tracersData[player] = createTracer(player)
@@ -1381,7 +1331,6 @@ local function Tracers(enabled)
         TracersFolder:Destroy()
     end
 end
-
 
 -- Función para Fullbright
 local function Fullbright(enabled)
@@ -1453,7 +1402,7 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
-    {name = "WallRun", callback = function() end},
+    {name = "WallRun", callback = WallRun},
     {name = "Levitation", callback = Levitation}
 }
 
@@ -1723,7 +1672,7 @@ local function SetupRespawnPersistence()
                 elseif feature == "AntiAim" then
                     AntiAim(true)
                 elseif feature == "HitboxExpander" then
-                    HitboxExpander(true)
+                    -- HitboxExpander ya es persistente con la implementación mejorada
                 elseif feature == "ESP" then
                     ESP(true)
                 elseif feature == "Chams" then
@@ -1772,5 +1721,5 @@ end)
 -- Mensaje de confirmación
 print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
-print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander y ESP optimizados.")
+print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
 print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
