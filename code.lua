@@ -1070,10 +1070,11 @@ local function Telekinesis(enabled)
     end
 end
 
--- OPTIMIZACIÓN: Implementación mejorada del ESP con mejor rendimiento
+-- OPTIMIZACIÓN: Implementación mejorada del ESP con mejor persistencia
 local espFolder
 local espData = {}
 local espUpdateConnection
+local espPlayerConnections = {}
 
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
@@ -1089,6 +1090,12 @@ local function ESP(enabled)
         espUpdateConnection:Disconnect()
         espUpdateConnection = nil
     end
+    
+    -- Desconectar todas las conexiones de jugadores
+    for _, connection in pairs(espPlayerConnections) do
+        if connection then connection:Disconnect() end
+    end
+    espPlayerConnections = {}
     
     -- Limpiar datos de ESP
     for _, data in pairs(espData) do
@@ -1116,6 +1123,13 @@ local function ESP(enabled)
     local function createESP(player)
         if player == LocalPlayer then return end
         
+        -- Si ya existe un ESP para este jugador, limpiarlo primero
+        if espData[player.Name] then
+            if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
+            if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
+            if espData[player.Name].connection then espData[player.Name].connection:Disconnect() end
+        end
+        
         local highlight = Instance.new("Highlight")
         highlight.Name = player.Name .. "Highlight"
         highlight.FillColor = getTeamColor(player)
@@ -1141,11 +1155,34 @@ local function ESP(enabled)
         nameLabel.TextScaled = true
         nameLabel.Parent = billboardGui
         
+        -- Guardar datos del ESP
         espData[player.Name] = {
             highlight = highlight,
             nameTag = billboardGui,
             nameLabel = nameLabel
         }
+        
+        -- Configurar conexión para cuando el personaje cambie (respawn)
+        local characterConnection = player.CharacterAdded:Connect(function(character)
+            -- Esperar un momento para asegurarse de que el personaje esté completamente cargado
+            task.wait(0.5)
+            
+            -- Actualizar el ESP para el nuevo personaje
+            if espData[player.Name] then
+                espData[player.Name].highlight.Parent = character
+                espData[player.Name].nameTag.Parent = character:WaitForChild("HumanoidRootPart", 2)
+            end
+        end)
+        
+        -- Guardar la conexión para limpiarla después
+        espData[player.Name].connection = characterConnection
+        espPlayerConnections[player.Name] = characterConnection
+        
+        -- Aplicar ESP al personaje actual si existe
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            highlight.Parent = player.Character
+            billboardGui.Parent = player.Character.HumanoidRootPart
+        end
     end
     
     -- Crear ESP para jugadores existentes
@@ -1165,7 +1202,13 @@ local function ESP(enabled)
         if espData[player.Name] then
             if espData[player.Name].highlight then espData[player.Name].highlight:Destroy() end
             if espData[player.Name].nameTag then espData[player.Name].nameTag:Destroy() end
+            if espData[player.Name].connection then espData[player.Name].connection:Disconnect() end
             espData[player.Name] = nil
+            
+            if espPlayerConnections[player.Name] then
+                espPlayerConnections[player.Name]:Disconnect()
+                espPlayerConnections[player.Name] = nil
+            end
         end
     end)
     
@@ -1174,10 +1217,11 @@ local function ESP(enabled)
         for playerName, data in pairs(espData) do
             local player = Players:FindFirstChild(playerName)
             if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                -- Asegurarse de que el ESP esté conectado al personaje correcto
                 data.highlight.Parent = player.Character
                 data.nameTag.Parent = player.Character.HumanoidRootPart
                 
-                -- Actualizar texto solo cuando es necesario (cada 10 frames)
+                -- Actualizar texto solo cuando es necesario (cada 0.5 segundos)
                 if tick() % 0.5 < 0.1 then
                     local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                     data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
@@ -1186,11 +1230,20 @@ local function ESP(enabled)
                 end
             end
         end
+        
+        -- Verificar si hay jugadores sin ESP y aplicárselo
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and not espData[player.Name] then
+                createESP(player)
+            end
+        end
     end)
     
     -- Guardar conexiones para limpiarlas después
     espData.playerAddedConnection = playerAddedConnection
     espData.playerRemovingConnection = playerRemovingConnection
+    espPlayerConnections["playerAdded"] = playerAddedConnection
+    espPlayerConnections["playerRemoving"] = playerRemovingConnection
 end
 
 -- Función para Chams
@@ -1407,6 +1460,7 @@ local MovementFeatures = {
     {name = "Fly", callback = ToggleFly},
     {name = "Speed", callback = ToggleSpeed, slider = true, min = 16, max = 200, default = 16},
     {name = "SuperJump", callback = ToggleSuperJump, slider = true, min = 50, max = 500, default = 50},
+    {name = "InfiniteJump", callback =  slider = true, min = 50, max = 500, default = 50},
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
@@ -1731,3 +1785,4 @@ print("Script mejorado cargado correctamente. Use el botón en la izquierda para
 print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
 print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander y ESP optimizados.")
 print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
+print("El ESP ha sido mejorado para permanecer visible en todos los jugadores, incluso después de que mueran varias veces.")
