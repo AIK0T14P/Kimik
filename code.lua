@@ -665,45 +665,134 @@ local function ToggleFly(enabled)
         BV.Velocity = Vector3.new(0, 0.1, 0)
         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         
-        -- Para capturar la entrada del joystick en móvil
-        local mobileMove = Vector3.new(0, 0, 0)
-        local mobileJump = false
-        local mobileDescend = false
+        -- Crear una tabla para almacenar conexiones de inputs
+        local inputConnections = {}
         
-        -- Conexiones para detectar el input móvil
-        local mobileInputConnections = {}
+        -- Variables para rastrear el movimiento
+        local moveX, moveY, moveZ = 0, 0, 0
         
-        if UserInputService.TouchEnabled then
-            -- Detectar movimiento del joystick
-            table.insert(mobileInputConnections, UserInputService.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
-                    -- Capturar joystick virtual
-                    if input.KeyCode == Enum.KeyCode.Thumbstick1 then
-                        mobileMove = Vector3.new(input.Position.X, 0, input.Position.Y)
+        -- Detectar si es un dispositivo móvil
+        local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+        
+        if isMobile then
+            -- Esta función usará la entrada táctil directamente
+            local function updateMobileMovement()
+                -- Obtenemos la entrada del joystick directamente a través del "DynamicThumbstick"
+                local humanoid = Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    -- Roblox asigna automáticamente el movimiento del joystick al MoveDirection del humanoid
+                    -- Usaremos esto para nuestro movimiento de vuelo
+                    local moveDirection = humanoid.MoveDirection
+                    if moveDirection.Magnitude > 0 then
+                        moveX = moveDirection.X
+                        moveZ = moveDirection.Z
+                    else
+                        moveX, moveZ = 0, 0
                     end
+                end
+                
+                -- Para subir/bajar, podemos usar botones personalizados o detectar toques en zonas específicas
+                -- Ejemplo básico: mitad superior de la pantalla para subir, mitad inferior para bajar
+                
+                -- Alternativa: implementar botones personalizados en la interfaz de usuario
+                -- Usar la GUI existente de Roblox es complicado porque no está documentado oficialmente
+            end
+            
+            -- Conectar a heartbeat para actualización constante
+            table.insert(inputConnections, RunService.Heartbeat:Connect(updateMobileMovement))
+            
+            -- Intentar detectar toques para subir/bajar
+            table.insert(inputConnections, UserInputService.TouchTap:Connect(function(touchPositions)
+                local screenSize = Camera.ViewportSize
+                local touchY = touchPositions[1].Y
+                
+                -- Tocar en la mitad superior de la pantalla para subir
+                if touchY < screenSize.Y / 2 then
+                    moveY = 1
+                    wait(0.2) -- Mantener el movimiento por un momento
+                    moveY = 0
+                else -- Tocar en la mitad inferior para bajar
+                    moveY = -1
+                    wait(0.2)
+                    moveY = 0
                 end
             end))
             
-            -- Detectar botones virtuales
-            table.insert(mobileInputConnections, UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
-                    if input.KeyCode == Enum.KeyCode.ButtonA then
-                        mobileJump = true
-                    elseif input.KeyCode == Enum.KeyCode.ButtonB then
-                        mobileDescend = true
-                    end
-                end
-            end))
+            -- Crear una interfaz de usuario para subir/bajar
+            local player = game.Players.LocalPlayer
+            local playerGui = player:WaitForChild("PlayerGui")
             
-            table.insert(mobileInputConnections, UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
-                    if input.KeyCode == Enum.KeyCode.ButtonA then
-                        mobileJump = false
-                    elseif input.KeyCode == Enum.KeyCode.ButtonB then
-                        mobileDescend = false
-                    end
+            -- Crear una interfaz para subir/bajar si no existe ya
+            local flyGui = playerGui:FindFirstChild("FlyGui")
+            if not flyGui then
+                flyGui = Instance.new("ScreenGui")
+                flyGui.Name = "FlyGui"
+                flyGui.Parent = playerGui
+                
+                -- Crear botón para subir
+                local upButton = Instance.new("TextButton")
+                upButton.Name = "UpButton"
+                upButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+                upButton.Position = UDim2.new(0.85, 0, 0.3, 0)
+                upButton.Text = "↑"
+                upButton.TextSize = 40
+                upButton.BackgroundTransparency = 0.5
+                upButton.Parent = flyGui
+                
+                -- Crear botón para bajar
+                local downButton = Instance.new("TextButton")
+                downButton.Name = "DownButton"
+                downButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+                downButton.Position = UDim2.new(0.85, 0, 0.45, 0)
+                downButton.Text = "↓"
+                downButton.TextSize = 40
+                downButton.BackgroundTransparency = 0.5
+                downButton.Parent = flyGui
+                
+                -- Asignar funciones a los botones
+                upButton.TouchTap:Connect(function()
+                    moveY = 1
+                end)
+                
+                upButton.TouchEnded:Connect(function()
+                    moveY = 0
+                end)
+                
+                downButton.TouchTap:Connect(function()
+                    moveY = -1
+                end)
+                
+                downButton.TouchEnded:Connect(function()
+                    moveY = 0
+                end)
+            else
+                -- Mostrar la interfaz si ya existe
+                flyGui.Enabled = true
+                
+                -- Conectar funciones a los botones existentes
+                local upButton = flyGui:FindFirstChild("UpButton")
+                local downButton = flyGui:FindFirstChild("DownButton")
+                
+                if upButton then
+                    table.insert(inputConnections, upButton.TouchTap:Connect(function()
+                        moveY = 1
+                    end))
+                    
+                    table.insert(inputConnections, upButton.TouchEnded:Connect(function()
+                        moveY = 0
+                    end))
                 end
-            end))
+                
+                if downButton then
+                    table.insert(inputConnections, downButton.TouchTap:Connect(function()
+                        moveY = -1
+                    end))
+                    
+                    table.insert(inputConnections, downButton.TouchEnded:Connect(function()
+                        moveY = 0
+                    end))
+                end
+            end
         end
         
         RunService:BindToRenderStep("Fly", 100, function()
@@ -713,26 +802,11 @@ local function ToggleFly(enabled)
             
             local moveDirection
             
-            -- Determinar si usar controles móviles o de PC
-            if UserInputService.TouchEnabled then
-                -- Usar inputs móviles
-                moveDirection = Vector3.new(
-                    mobileMove.X,
-                    (mobileJump and 1 or 0) - (mobileDescend and 1 or 0),
-                    mobileMove.Z
-                )
-                
-                -- Como alternativa, usar directamente el estado actual del joystick
-                local thumbstickPosition = UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1).Thumbstick1
-                if thumbstickPosition.Magnitude > 0 then
-                    moveDirection = Vector3.new(
-                        thumbstickPosition.X,
-                        moveDirection.Y,
-                        thumbstickPosition.Y
-                    )
-                end
+            if isMobile then
+                -- Usar los valores capturados para el movimiento en móvil
+                moveDirection = Vector3.new(moveX, moveY, moveZ)
             else
-                -- Usar inputs de PC (original)
+                -- Usar el código original para PC
                 moveDirection = Vector3.new(
                     UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0),
                     (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
@@ -752,8 +826,27 @@ local function ToggleFly(enabled)
                 BV.Velocity = Vector3.new(0, 0.1, 0)
             end
         end)
+        
+        -- Guardar las conexiones para limpiarlas después
+        HumanoidRootPart:SetAttribute("FlyInputConnections", inputConnections)
     else
         RunService:UnbindFromRenderStep("Fly")
+        
+        -- Limpiar las conexiones de input
+        local connections = HumanoidRootPart:GetAttribute("FlyInputConnections")
+        if connections then
+            for _, connection in pairs(connections) do
+                connection:Disconnect()
+            end
+        end
+        
+        -- Ocultar la GUI de vuelo si existe
+        local player = game.Players.LocalPlayer
+        local flyGui = player.PlayerGui:FindFirstChild("FlyGui")
+        if flyGui then
+            flyGui.Enabled = false
+        end
+        
         for _, v in pairs(HumanoidRootPart:GetChildren()) do
             if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then
                 v:Destroy()
