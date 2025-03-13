@@ -1375,7 +1375,8 @@ local function Chams(enabled)
 
     local function createChams(player)
         if player == LocalPlayer then return end
-
+        
+        -- Función para aplicar Chams a una parte
         local function applyChams(part)
             local chamPart = Instance.new("BoxHandleAdornment")
             chamPart.Name = player.Name .. "_Cham"
@@ -1389,56 +1390,58 @@ local function Chams(enabled)
             return chamPart
         end
 
-        local chams = {}
-
         local function updateChams()
+            -- Asegurar que el personaje existe antes de aplicar Chams
             if player.Character then
-                -- Elimina adornos antiguos
-                for _, cham in pairs(chams) do
-                    cham:Destroy()
+                -- Eliminar chams antiguos del jugador
+                if chamsData[player] then
+                    for _, cham in pairs(chamsData[player]) do
+                        cham:Destroy()
+                    end
                 end
-                chams = {}
+                chamsData[player] = {}
 
-                -- Crea nuevos adornos
+                -- Aplicar chams a cada parte válida del personaje
                 for _, part in pairs(player.Character:GetChildren()) do
                     if part:IsA("BasePart") then
-                        chams[part] = applyChams(part)
+                        chamsData[player][part] = applyChams(part)
                     end
                 end
             end
         end
 
-        -- Conexión para actualizar los Chams en cada nueva aparición del personaje
+        -- Evento cuando un personaje reaparece
         player.CharacterAdded:Connect(updateChams)
-        
-        -- Conexión para eliminar adornos cuando el personaje muere
+
+        -- Evento para eliminar chams cuando el personaje muere
         player.CharacterRemoving:Connect(function()
-            for _, cham in pairs(chams) do
-                cham:Destroy()
+            if chamsData[player] then
+                for _, cham in pairs(chamsData[player]) do
+                    cham:Destroy()
+                end
+                chamsData[player] = nil
             end
-            chams = {}
         end)
 
-        -- Inicializa los Chams si el jugador ya tiene un personaje
+        -- Aplicar chams si el personaje ya está en el juego
         updateChams()
-
-        return { chams = chams }
     end
 
     if enabled then
+        -- Aplicar Chams a todos los jugadores actuales
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
-                chamsData[player] = createChams(player)
+                createChams(player)
             end
         end
 
-        Players.PlayerAdded:Connect(function(player)
-            chamsData[player] = createChams(player)
-        end)
+        -- Evento para aplicar Chams a nuevos jugadores
+        Players.PlayerAdded:Connect(createChams)
 
+        -- Evento para remover Chams cuando un jugador se va
         Players.PlayerRemoving:Connect(function(player)
             if chamsData[player] then
-                for _, cham in pairs(chamsData[player].chams) do
+                for _, cham in pairs(chamsData[player]) do
                     cham:Destroy()
                 end
                 chamsData[player] = nil
@@ -1447,7 +1450,7 @@ local function Chams(enabled)
     else
         -- Desactivar los Chams y limpiar todo
         for _, data in pairs(chamsData) do
-            for _, cham in pairs(data.chams) do
+            for _, cham in pairs(data) do
                 cham:Destroy()
             end
         end
@@ -1455,7 +1458,6 @@ local function Chams(enabled)
         ChamsFolder:Destroy()
     end
 end
-
 
 -- Función para Tracers
 local function Tracers(enabled)
