@@ -913,16 +913,131 @@ local function SpinBot(enabled)
     end
 end
 
-local function AntiAim(enabled)
-    EnabledFeatures["AntiAim"] = enabled
+local function AutoAim(enabled)
+    EnabledFeatures["AutoAim"] = enabled
+    
+    -- Crear círculo de asistencia
+    local aimCircle = Drawing.new("Circle")
+    aimCircle.Thickness = 1
+    aimCircle.Color = Color3.new(1, 0, 0)
+    aimCircle.Transparency = 0.5
+    aimCircle.Visible = enabled
+    aimCircle.Radius = 100 -- Radio del círculo de asistencia
+    
+    -- Crear retícula central
+    local crosshairSize = 10
+    local crosshairThickness = 2
+    local crosshairColor = Color3.new(0, 1, 0)
+    
+    local crosshairH = Drawing.new("Line")
+    local crosshairV = Drawing.new("Line")
+    
+    crosshairH.Thickness = crosshairThickness
+    crosshairH.Color = crosshairColor
+    crosshairH.Transparency = 1
+    crosshairH.Visible = enabled
+    
+    crosshairV.Thickness = crosshairThickness
+    crosshairV.Color = crosshairColor
+    crosshairV.Transparency = 1
+    crosshairV.Visible = enabled
+    
+    local function updateCrosshair()
+        local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        aimCircle.Position = center
+        
+        crosshairH.From = Vector2.new(center.X - crosshairSize, center.Y)
+        crosshairH.To = Vector2.new(center.X + crosshairSize, center.Y)
+        
+        crosshairV.From = Vector2.new(center.X, center.Y - crosshairSize)
+        crosshairV.To = Vector2.new(center.X, center.Y + crosshairSize)
+    end
+    
+    -- Función para verificar si un punto está dentro del círculo
+    local function isInCircle(point, center, radius)
+        return (point - center).Magnitude <= radius
+    end
+    
+    -- Variables para el auto-aim
+    local isAiming = false
+    local currentTarget = nil
+    
+    -- Detectar cuando el jugador está disparando
+    UserInputService.InputBegan:Connect(function(input)
+        if not enabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isAiming = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isAiming = false
+            currentTarget = nil
+        end
+    end)
+    
+    -- Conexión principal para el auto-aim
     local connection
     if enabled then
+        updateCrosshair()
         connection = RunService.RenderStepped:Connect(function()
-            Character:SetPrimaryPartCFrame(Character:GetPrimaryPartCFrame() * CFrame.Angles(math.rad(math.random(-180, 180)), math.rad(math.random(-180, 180)), math.rad(math.random(-180, 180))))
+            updateCrosshair()
+            
+            if not isAiming then return end
+            
+            local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+            local closestDistance = math.huge
+            local closestPlayer = nil
+            
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and 
+                   player.Character:FindFirstChild("HumanoidRootPart") and 
+                   player.Character:FindFirstChild("Humanoid") and 
+                   player.Character.Humanoid.Health > 0 then
+                    
+                    local vector, onScreen = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
+                    if onScreen then
+                        local screenPos = Vector2.new(vector.X, vector.Y)
+                        
+                        -- Verificar si el jugador está dentro del círculo
+                        if isInCircle(screenPos, center, aimCircle.Radius) then
+                            local distance = (screenPos - center).Magnitude
+                            if distance < closestDistance then
+                                closestDistance = distance
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+            end
+            
+            -- Actualizar objetivo y aplicar auto-aim
+            if closestPlayer and closestPlayer.Character then
+                currentTarget = closestPlayer
+                local targetPos = currentTarget.Character.HumanoidRootPart.Position
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            end
         end)
     else
         if connection then
             connection:Disconnect()
+        end
+        aimCircle.Visible = false
+        crosshairH.Visible = false
+        crosshairV.Visible = false
+    end
+    
+    -- Limpiar al desactivar
+    if not enabled then
+        if aimCircle then
+            aimCircle:Remove()
+        end
+        if crosshairH then
+            crosshairH:Remove()
+        end
+        if crosshairV then
+            crosshairV:Remove()
         end
     end
 end
