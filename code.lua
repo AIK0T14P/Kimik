@@ -665,49 +665,74 @@ local function ToggleFly(enabled)
         BV.Velocity = Vector3.new(0, 0.1, 0)
         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         
+        -- Para capturar la entrada del joystick en móvil
+        local mobileMove = Vector3.new(0, 0, 0)
+        local mobileJump = false
+        local mobileDescend = false
+        
+        -- Conexiones para detectar el input móvil
+        local mobileInputConnections = {}
+        
+        if UserInputService.TouchEnabled then
+            -- Detectar movimiento del joystick
+            table.insert(mobileInputConnections, UserInputService.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
+                    -- Capturar joystick virtual
+                    if input.KeyCode == Enum.KeyCode.Thumbstick1 then
+                        mobileMove = Vector3.new(input.Position.X, 0, input.Position.Y)
+                    end
+                end
+            end))
+            
+            -- Detectar botones virtuales
+            table.insert(mobileInputConnections, UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if input.KeyCode == Enum.KeyCode.ButtonA then
+                        mobileJump = true
+                    elseif input.KeyCode == Enum.KeyCode.ButtonB then
+                        mobileDescend = true
+                    end
+                end
+            end))
+            
+            table.insert(mobileInputConnections, UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Gamepad1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if input.KeyCode == Enum.KeyCode.ButtonA then
+                        mobileJump = false
+                    elseif input.KeyCode == Enum.KeyCode.ButtonB then
+                        mobileDescend = false
+                    end
+                end
+            end))
+        end
+        
         RunService:BindToRenderStep("Fly", 100, function()
             if not enabled then return end
             
             BG.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
             
-            local moveDirection = Vector3.new(0, 0, 0)
+            local moveDirection
             
-            -- Verificar si estamos en un dispositivo móvil
+            -- Determinar si usar controles móviles o de PC
             if UserInputService.TouchEnabled then
-                -- Obtener entrada del joystick de Roblox
-                local controls = LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
-                if controls then
-                    local touchControl = controls:FindFirstChild("TouchControlFrame")
-                    if touchControl then
-                        local thumbstick = touchControl:FindFirstChild("ThumbstickFrame")
-                        if thumbstick and thumbstick.Visible then
-                            local thumb = thumbstick:FindFirstChild("Thumb")
-                            if thumb then
-                                -- Calcular dirección basada en la posición del pulgar
-                                local stickOffset = thumb.Position - thumbstick.Position - thumbstick.Size/2
-                                if stickOffset.Magnitude > 0 then
-                                    moveDirection = Vector3.new(
-                                        stickOffset.X.Scale, 
-                                        0,
-                                        stickOffset.Y.Scale
-                                    )
-                                end
-                            end
-                        end
-                    end
-                end
-                
-                -- Verificar botones para subir/bajar (jump y crouch/shift)
-                local jumpButton = UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonA) or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Touch, Enum.KeyCode.ButtonA)
-                local shiftButton = UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonB) or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Touch, Enum.KeyCode.ButtonB)
-                
+                -- Usar inputs móviles
                 moveDirection = Vector3.new(
-                    moveDirection.X,
-                    (jumpButton and 1 or 0) - (shiftButton and 1 or 0),
-                    moveDirection.Z
+                    mobileMove.X,
+                    (mobileJump and 1 or 0) - (mobileDescend and 1 or 0),
+                    mobileMove.Z
                 )
+                
+                -- Como alternativa, usar directamente el estado actual del joystick
+                local thumbstickPosition = UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1).Thumbstick1
+                if thumbstickPosition.Magnitude > 0 then
+                    moveDirection = Vector3.new(
+                        thumbstickPosition.X,
+                        moveDirection.Y,
+                        thumbstickPosition.Y
+                    )
+                end
             else
-                -- Usar el código original para PC
+                -- Usar inputs de PC (original)
                 moveDirection = Vector3.new(
                     UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0),
                     (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
