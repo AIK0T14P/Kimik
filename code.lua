@@ -1360,7 +1360,7 @@ local function DisableESP()
 end
 
 -- Función para Chams
- chamsFolder
+local chamsFolder
 local chamsConnections = {}
 local chamsPlayerData = {}
 local chamsUpdateConnection
