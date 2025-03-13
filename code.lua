@@ -659,35 +659,32 @@ local function ToggleFly(enabled)
         local BG = Instance.new("BodyGyro", HumanoidRootPart)
         BG.P = 9e4
         BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BG.CFrame = CFrame.new(HumanoidRootPart.Position) -- No sigue la cámara
+        BG.CFrame = CFrame.new(HumanoidRootPart.Position)
 
         local BV = Instance.new("BodyVelocity", HumanoidRootPart)
         BV.Velocity = Vector3.new(0, 0.1, 0)
         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
-        -- Variables de control
+        -- Controles
         local keyW, keyA, keyS, keyD = false, false, false, false
         local keySpace, keyShift = false, false
 
-        -- Crear UI
         local player = game.Players.LocalPlayer
         local playerGui = player:WaitForChild("PlayerGui")
 
         local existingGui = playerGui:FindFirstChild("FlyControlsGui")
-        if existingGui then
-            existingGui:Destroy()
-        end
+        if existingGui then existingGui:Destroy() end
 
         local controlsGui = Instance.new("ScreenGui")
         controlsGui.Name = "FlyControlsGui"
         controlsGui.ResetOnSpawn = false
         controlsGui.Parent = playerGui
 
-        -- Joystick (izquierda)
+        -- Joystick (más a la derecha)
         local joystickBg = Instance.new("Frame")
         joystickBg.Name = "JoystickBg"
         joystickBg.Size = UDim2.new(0, 150, 0, 150)
-        joystickBg.Position = UDim2.new(0.15, -75, 0.7, -75) -- Ahora a la izquierda
+        joystickBg.Position = UDim2.new(0.35, -75, 0.7, -75) -- Más a la derecha
         joystickBg.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         joystickBg.BackgroundTransparency = 0.7
         joystickBg.BorderSizePixel = 0
@@ -716,7 +713,7 @@ local function ToggleFly(enabled)
         local upButton = Instance.new("TextButton")
         upButton.Name = "UpButton"
         upButton.Size = UDim2.new(0, 70, 0, 70)
-        upButton.Position = UDim2.new(0.85, 0, 0.6, 0) -- Ahora a la derecha
+        upButton.Position = UDim2.new(0.85, 0, 0.6, 0)
         upButton.Text = "▲"
         upButton.TextSize = 30
         upButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
@@ -724,24 +721,16 @@ local function ToggleFly(enabled)
         upButton.BorderSizePixel = 0
         upButton.Parent = controlsGui
 
-        local upCorner = Instance.new("UICorner")
-        upCorner.CornerRadius = UDim.new(0.3, 0)
-        upCorner.Parent = upButton
-
         local downButton = Instance.new("TextButton")
         downButton.Name = "DownButton"
         downButton.Size = UDim2.new(0, 70, 0, 70)
-        downButton.Position = UDim2.new(0.85, 0, 0.75, 0) -- Ahora a la derecha
+        downButton.Position = UDim2.new(0.85, 0, 0.75, 0)
         downButton.Text = "▼"
         downButton.TextSize = 30
         downButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
         downButton.BackgroundTransparency = 0.5
         downButton.BorderSizePixel = 0
         downButton.Parent = controlsGui
-
-        local downCorner = Instance.new("UICorner")
-        downCorner.CornerRadius = UDim.new(0.3, 0)
-        downCorner.Parent = downButton
 
         -- Variables de joystick
         local isDragging = false
@@ -756,14 +745,13 @@ local function ToggleFly(enabled)
             local delta = input.Position - startPos
             local distance = math.min(delta.Magnitude, maxDistance)
 
-            -- Normalizar dirección
             local normalizedX = math.clamp(delta.X / maxDistance, -1, 1)
             local normalizedY = math.clamp(delta.Y / maxDistance, -1, 1)
 
             -- Mover joystick
             joystickHandle.Position = UDim2.new(0.5, 0, 0.5, 0) + UDim2.new(0, delta.X * (distance / delta.Magnitude), 0, delta.Y * (distance / delta.Magnitude))
 
-            -- Aplicar direcciones corregidas
+            -- Dirección corregida
             keyW = normalizedY < -0.5
             keyS = normalizedY > 0.5
             keyA = normalizedX < -0.5
@@ -798,30 +786,30 @@ local function ToggleFly(enabled)
         downButton.MouseButton1Down:Connect(function() keyShift = true end)
         downButton.MouseButton1Up:Connect(function() keyShift = false end)
 
-        -- Aplicar movimiento sin mover la cámara
+        -- Movimiento basado en la cámara
         RunService:BindToRenderStep("Fly", 100, function()
             if not enabled then return end
+
+            local cameraCFrame = workspace.CurrentCamera.CFrame
+            local lookVector = cameraCFrame.LookVector
+            local rightVector = cameraCFrame.RightVector
+            local upVector = cameraCFrame.UpVector
 
             local moveDirection = Vector3.new(
                 (keyD and 1 or 0) - (keyA and 1 or 0),
                 (keySpace and 1 or 0) - (keyShift and 1 or 0),
-                (keyW and 1 or 0) - (keyS and 1 or 0) -- Corregido
+                (keyW and -1 or 0) + (keyS and 1 or 0)
             )
 
-            BV.Velocity = moveDirection * 50
+            local velocity = (rightVector * moveDirection.X + upVector * moveDirection.Y + lookVector * moveDirection.Z) * 50
+            BV.Velocity = velocity.Magnitude > 0 and velocity or Vector3.new(0, 0.1, 0)
         end)
     else
         RunService:UnbindFromRenderStep("Fly")
-
-        local controlsGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("FlyControlsGui")
-        if controlsGui then
-            controlsGui:Destroy()
-        end
-
+        local controlsGui = player.PlayerGui:FindFirstChild("FlyControlsGui")
+        if controlsGui then controlsGui:Destroy() end
         for _, v in pairs(HumanoidRootPart:GetChildren()) do
-            if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then
-                v:Destroy()
-            end
+            if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
         end
     end
 end
