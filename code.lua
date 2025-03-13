@@ -670,11 +670,50 @@ local function ToggleFly(enabled)
             
             BG.CFrame = CFrame.new(HumanoidRootPart.Position, HumanoidRootPart.Position + Camera.CFrame.LookVector)
             
-            local moveDirection = Vector3.new(
-                UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0),
-                (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
-                UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0)
-            )
+            local moveDirection = Vector3.new(0, 0, 0)
+            
+            -- Verificar si estamos en un dispositivo móvil
+            if UserInputService.TouchEnabled then
+                -- Obtener entrada del joystick de Roblox
+                local controls = LocalPlayer.PlayerGui:FindFirstChild("TouchGui")
+                if controls then
+                    local touchControl = controls:FindFirstChild("TouchControlFrame")
+                    if touchControl then
+                        local thumbstick = touchControl:FindFirstChild("ThumbstickFrame")
+                        if thumbstick and thumbstick.Visible then
+                            local thumb = thumbstick:FindFirstChild("Thumb")
+                            if thumb then
+                                -- Calcular dirección basada en la posición del pulgar
+                                local stickOffset = thumb.Position - thumbstick.Position - thumbstick.Size/2
+                                if stickOffset.Magnitude > 0 then
+                                    moveDirection = Vector3.new(
+                                        stickOffset.X.Scale, 
+                                        0,
+                                        stickOffset.Y.Scale
+                                    )
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                -- Verificar botones para subir/bajar (jump y crouch/shift)
+                local jumpButton = UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonA) or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Touch, Enum.KeyCode.ButtonA)
+                local shiftButton = UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonB) or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Touch, Enum.KeyCode.ButtonB)
+                
+                moveDirection = Vector3.new(
+                    moveDirection.X,
+                    (jumpButton and 1 or 0) - (shiftButton and 1 or 0),
+                    moveDirection.Z
+                )
+            else
+                -- Usar el código original para PC
+                moveDirection = Vector3.new(
+                    UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0),
+                    (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and 1 or 0),
+                    UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or (UserInputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0)
+                )
+            end
             
             local cameraCFrame = Camera.CFrame
             local lookVector = cameraCFrame.LookVector
