@@ -1360,157 +1360,100 @@ local function DisableESP()
 end
 
 -- Función para Chams
-local chamsFolder
-local chamsConnections = {}
-local chamsPlayerData = {}
-local chamsUpdateConnection
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
-    
-    -- Limpiar conexiones existentes
-    if chamsUpdateConnection then
-        chamsUpdateConnection:Disconnect()
-        chamsUpdateConnection = nil
+
+    local ChamsFolder = game.CoreGui:FindFirstChild("ChamsFolder") or Instance.new("Folder")
+    ChamsFolder.Name = "ChamsFolder"
+    ChamsFolder.Parent = game.CoreGui
+
+    local chamsData = {}
+
+    local function createChams(player)
+        if player == LocalPlayer then return end
+
+        local function applyChams(part)
+            local chamPart = Instance.new("BoxHandleAdornment")
+            chamPart.Name = player.Name .. "_Cham"
+            chamPart.Adornee = part
+            chamPart.AlwaysOnTop = true
+            chamPart.ZIndex = 9500
+            chamPart.Size = part.Size
+            chamPart.Transparency = 0.5
+            chamPart.Color3 = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
+            chamPart.Parent = ChamsFolder
+            return chamPart
+        end
+
+        local chams = {}
+
+        local function updateChams()
+            if player.Character then
+                -- Elimina adornos antiguos
+                for _, cham in pairs(chams) do
+                    cham:Destroy()
+                end
+                chams = {}
+
+                -- Crea nuevos adornos
+                for _, part in pairs(player.Character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        chams[part] = applyChams(part)
+                    end
+                end
+            end
+        end
+
+        -- Conexión para actualizar los Chams en cada nueva aparición del personaje
+        player.CharacterAdded:Connect(updateChams)
+        
+        -- Conexión para eliminar adornos cuando el personaje muere
+        player.CharacterRemoving:Connect(function()
+            for _, cham in pairs(chams) do
+                cham:Destroy()
+            end
+            chams = {}
+        end)
+
+        -- Inicializa los Chams si el jugador ya tiene un personaje
+        updateChams()
+
+        return { chams = chams }
     end
-    
-    for _, connection in pairs(chamsConnections) do
-        connection:Disconnect()
-    end
-    chamsConnections = {}
-    
-    -- Limpiar elementos visuales
-    if chamsFolder then
-        chamsFolder:Destroy()
-        chamsFolder = nil
-    end
-    
-    if not enabled then
-        -- Limpiar datos de jugadores
-        for _, data in pairs(chamsPlayerData) do
+
+    if enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                chamsData[player] = createChams(player)
+            end
+        end
+
+        Players.PlayerAdded:Connect(function(player)
+            chamsData[player] = createChams(player)
+        end)
+
+        Players.PlayerRemoving:Connect(function(player)
+            if chamsData[player] then
+                for _, cham in pairs(chamsData[player].chams) do
+                    cham:Destroy()
+                end
+                chamsData[player] = nil
+            end
+        end)
+    else
+        -- Desactivar los Chams y limpiar todo
+        for _, data in pairs(chamsData) do
             for _, cham in pairs(data.chams) do
                 cham:Destroy()
             end
         end
-        chamsPlayerData = {}
-        return
+        chamsData = {}
+        ChamsFolder:Destroy()
     end
-    
-    -- Crear carpeta para elementos Chams
-    chamsFolder = Instance.new("Folder")
-    chamsFolder.Name = "ChamsFolder"
-    chamsFolder.Parent = game.CoreGui
-    
-    -- Función para obtener color de equipo
-    local function getTeamColor(player)
-        if player.Team then
-            return player.Team.TeamColor.Color
-        end
-        return Color3.fromRGB(255, 0, 0)
-    end
-    
-    -- Función para crear Chams para un jugador
-    local function createPlayerChams(player)
-        if player == LocalPlayer then return end
-        
-        local chams = {}
-        chamsPlayerData[player] = {
-            chams = chams,
-            lastUpdate = 0
-        }
-        
-        -- Función para aplicar chams a una parte
-        local function applyCham(part)
-            if not part:IsA("BasePart") or chams[part] then return end
-            
-            local chamPart = Instance.new("BoxHandleAdornment")
-            chamPart.Name = player.Name .. "Cham"
-            chamPart.Adornee = part
-            chamPart.AlwaysOnTop = true
-            chamPart.ZIndex = 5
-            chamPart.Size = part.Size
-            chamPart.Transparency = 0.5
-            chamPart.Color3 = getTeamColor(player)
-            chamPart.Parent = chamsFolder
-            
-            chams[part] = chamPart
-        end
-        
-        -- Función para actualizar chams en un personaje
-        local function updateCharacterChams(character)
-            if not character then return end
-            
-            -- Aplicar solo a partes principales para mejorar rendimiento
-            local mainParts = {"Head", "Torso", "HumanoidRootPart", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-            for _, partName in ipairs(mainParts) do
-                local part = character:FindFirstChild(partName)
-                if part then
-                    applyCham(part)
-                end
-            end
-        end
-        
-        -- Conectar evento de personaje añadido
-        local characterAddedConnection = player.CharacterAdded:Connect(function(char)
-            -- Limpiar chams anteriores
-            for part, cham in pairs(chams) do
-                cham:Destroy()
-                chams[part] = nil
-            end
-            
-            -- Esperar a que las partes principales se carguen
-            task.wait(0.5)
-            updateCharacterChams(char)
-        end)
-        
-        table.insert(chamsConnections, characterAddedConnection)
-        
-        -- Aplicar a personaje actual si existe
-        if player.Character then
-            updateCharacterChams(player.Character)
-        end
-    end
-    
-    -- Crear Chams para jugadores existentes
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            createPlayerChams(player)
-        end
-    end
-    
-    -- Conectar eventos para nuevos jugadores
-    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
-        createPlayerChams(player)
-    end)
-    
-    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
-        if chamsPlayerData[player] then
-            for _, cham in pairs(chamsPlayerData[player].chams) do
-                cham:Destroy()
-            end
-            chamsPlayerData[player] = nil
-        end
-    end)
-    
-    table.insert(chamsConnections, playerAddedConnection)
-    table.insert(chamsConnections, playerRemovingConnection)
-    
-    -- OPTIMIZACIÓN: Actualizar colores con menos frecuencia
-    chamsUpdateConnection = RunService.Heartbeat:Connect(function()
-        -- Actualizar solo cada 0.5 segundos
-        local currentTime = tick()
-        
-        for player, data in pairs(chamsPlayerData) do
-            if currentTime - data.lastUpdate >= 0.5 then
-                data.lastUpdate = currentTime
-                
-                local teamColor = getTeamColor(player)
-                for _, cham in pairs(data.chams) do
-                    cham.Color3 = teamColor
-                end
-            end
-        end
-    end)
 end
 
 
