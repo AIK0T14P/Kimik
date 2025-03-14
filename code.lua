@@ -939,23 +939,39 @@ end
 
 local function DamageMultiplier(enabled)
     EnabledFeatures["DamageMultiplier"] = enabled
+    local connection
+    local oldHealth = Humanoid.MaxHealth
+    
     if enabled then
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value * 2
-                end
+        -- Guardar conexión para poder desconectarla después
+        connection = Humanoid.HealthChanged:Connect(function()
+            if Humanoid.Health < Humanoid.MaxHealth then
+                Humanoid.Health = Humanoid.MaxHealth
             end
-        end
+        end)
+        
+        -- Hacer que el personaje no pueda morir
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        Humanoid.MaxHealth = 1000000
+        Humanoid.Health = 1000000
+        
+        -- Guardar la conexión en una variable global para acceder después
+        _G.ImmortalityConnection = connection
     else
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value / 2
-                end
-            end
+        -- Restaurar estado normal
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+        Humanoid.MaxHealth = oldHealth
+        Humanoid.Health = oldHealth
+        
+        -- Desconectar el evento
+        if _G.ImmortalityConnection then
+            _G.ImmortalityConnection:Disconnect()
+            _G.ImmortalityConnection = nil
+        end
+        
+        -- También desconectar si hay una conexión local
+        if connection then
+            connection:Disconnect()
         end
     end
 end
