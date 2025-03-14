@@ -978,23 +978,53 @@ end
 
 local function InstantKill(enabled)
     EnabledFeatures["InstantKill"] = enabled
+    local connection
+    local LocalPlayer = game.Players.LocalPlayer
+    
     if enabled then
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = 1000000
+        -- Crear una conexión que se ejecuta en cada heartbeat
+        connection = RunService.Heartbeat:Connect(function()
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= LocalPlayer then  -- No te mates a ti mismo
+                    local character = player.Character
+                    if character and character:FindFirstChild("Humanoid") then
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        
+                        -- Intentar varios métodos para matar al jugador
+                        -- Método 1: Daño directo
+                        humanoid.Health = 0
+                        
+                        -- Método 2: Usar BreakJoints para destruir el personaje
+                        if character:FindFirstChild("Head") then
+                            character.Head:BreakJoints()
+                        end
+                        
+                        -- Método 3: Eliminar el Humanoid
+                        if humanoid.Parent then
+                            humanoid:Destroy()
+                        end
+                        
+                        -- Método 4: Forzar el estado muerto
+                        pcall(function()
+                            humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+                        end)
+                    end
                 end
             end
-        end
+        end)
+        
+        -- Guardar la conexión
+        _G.KillAllConnection = connection
     else
-        for _, tool in pairs(Character:GetChildren()) do
-            if tool:IsA("Tool") then
-                local damage = tool:FindFirstChild("Damage")
-                if damage and damage:IsA("NumberValue") then
-                    damage.Value = damage.Value / 1000000
-                end
-            end
+        -- Desconectar el evento cuando se desactiva
+        if _G.KillAllConnection then
+            _G.KillAllConnection:Disconnect()
+            _G.KillAllConnection = nil
+        end
+        
+        -- También desconectar si hay una conexión local
+        if connection then
+            connection:Disconnect()
         end
     end
 end
