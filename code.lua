@@ -839,11 +839,14 @@ local function InfiniteJump(enabled)
     end
 end
 
+local NoClipConnection
+
 local function NoClip(enabled)
     EnabledFeatures["NoClip"] = enabled
-    local connection
+
     if enabled then
-        connection = RunService.Stepped:Connect(function()
+        if NoClipConnection then NoClipConnection:Disconnect() end
+        NoClipConnection = RunService.Stepped:Connect(function()
             for _, part in pairs(Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
@@ -851,8 +854,9 @@ local function NoClip(enabled)
             end
         end)
     else
-        if connection then
-            connection:Disconnect()
+        if NoClipConnection then
+            NoClipConnection:Disconnect()
+            NoClipConnection = nil
         end
         for _, part in pairs(Character:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -861,7 +865,6 @@ local function NoClip(enabled)
         end
     end
 end
-
 local function Reach(enabled)
     EnabledFeatures["Reach"] = enabled
     if enabled then
