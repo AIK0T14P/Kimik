@@ -819,6 +819,11 @@ local function ToggleSpeed(value)
     Humanoid.WalkSpeed = value
 end
 
+local function ToggleSpeed(value)
+    EnabledFeatures["Speed"] = value
+    Humanoid.WalkSpeed = value
+end
+
 local function ToggleSuperJump(value)
     EnabledFeatures["SuperJump"] = value
     Humanoid.JumpPower = value
