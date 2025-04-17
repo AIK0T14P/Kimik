@@ -1799,7 +1799,7 @@ end
 -- Características actualizadas (removidas las que no funcionan)
 local MovementFeatures = {
     {name = "Fly", callback = ToggleFly},
-    {name = "Speed", callback = ToggleSpeed, slider = true, min = 16, max = 200, default = 16},
+    {name = "Speed", callback = ToggleSpeed, slider = true, min = 16, max = 500, default = 16},
     {name = "SuperJump", callback = ToggleSuperJump, slider = true, min = 50, max = 500, default = 50},
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
