@@ -1890,7 +1890,7 @@ local function SetupRespawnPersistence()
                 elseif feature == "Speed" then
                     Humanoid.WalkSpeed = value
                 elseif feature == "AumentV" then
-                    Humanoid.WalkSpeed = value
+                    Humanoid.MaxHealth = value
                 elseif feature == "SuperJump" then
                     Humanoid.JumpPower = value
                     Humanoid.JumpHeight = 7.2
