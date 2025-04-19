@@ -1885,9 +1885,7 @@ local function SetupRespawnPersistence()
         -- Reactivar funciones habilitadas después del respawn
         for feature, value in pairs(EnabledFeatures) do
             if value then
-                if feature == "Fly" then
-                    ToggleFly(true)
-                elseif feature == "Speed" then
+                if feature == "Speed" then
                     Humanoid.WalkSpeed = value
                 elseif feature == "AumentV" then
                     Humanoid.MaxHealth = value
