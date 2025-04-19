@@ -820,9 +820,10 @@ local function ToggleSpeed(value)
     Humanoid.WalkSpeed = value
 end
 
-local function ToggleSpeed(value)
+local function ToggleVida(value)
     EnabledFeatures["AumentV"] = value
-    Humanoid.WalkSpeed = value
+    Humanoid.MaxHealth = value
+    Humanoid.Health = value -- Esto también pone la vida actual al nuevo valor
 end
 
 local function ToggleSuperJump(value)
