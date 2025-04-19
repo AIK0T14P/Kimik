@@ -60,6 +60,7 @@ local Languages = {
             KillAura = "Aura Asesina",
             AutoParry = "Auto Bloqueo",
             Reach = "Alcance",
+            AumentV = "Aumento de vida",
             ESP = "ESP",
             Chams = "Siluetas",
             Tracers = "Trazadores",
@@ -840,6 +841,33 @@ local function InfiniteJump(enabled)
     else
         if connection then
             connection:Disconnect()
+        end
+    end
+end
+
+local AumentV
+
+local function AumentV(enabled)
+    EnabledFeatures["AumentV"] = enabled
+
+    if enabled then
+        if AumentVConnection then NoClipConnection:Disconnect() end
+        NoClipConnection = RunService.Stepped:Connect(function()
+            for _, part in pairs(Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        if NoClipConnection then
+            NoClipConnection:Disconnect()
+            NoClipConnection = nil
+        end
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
         end
     end
 end
@@ -1800,6 +1828,7 @@ end
 local MovementFeatures = {
     {name = "Fly", callback = ToggleFly},
     {name = "Speed", callback = ToggleSpeed, slider = true, min = 16, max = 500, default = 16},
+    {name = "AumentV", callback = ToggleSpeed, slider = true, min = 16, max = 500, default = 16},
     {name = "SuperJump", callback = ToggleSuperJump, slider = true, min = 50, max = 500, default = 50},
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
@@ -2047,6 +2076,8 @@ local function SetupRespawnPersistence()
                 if feature == "Fly" then
                     ToggleFly(true)
                 elseif feature == "Speed" then
+                    Humanoid.WalkSpeed = value
+                elseif feature == "AumentV" then
                     Humanoid.WalkSpeed = value
                 elseif feature == "SuperJump" then
                     Humanoid.JumpPower = value
