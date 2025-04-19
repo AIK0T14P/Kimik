@@ -821,7 +821,7 @@ local function ToggleSpeed(value)
 end
 
 local function ToggleSpeed(value)
-    EnabledFeatures["Speed"] = value
+    EnabledFeatures["AumentV"] = value
     Humanoid.WalkSpeed = value
 end
 
