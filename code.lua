@@ -1062,6 +1062,17 @@ local function HitboxExpander(enabled)
             player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
             player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
             player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
+            
+            -- Verificar si el jugador está en un vehículo
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            if humanoid and humanoid.SeatPart and humanoid.SeatPart.Parent then
+                local vehicle = humanoid.SeatPart.Parent
+                if vehicle:IsA("Model") and vehicle.PrimaryPart then
+                    -- Forzar actualización visual del vehículo
+                    RunService.RenderStepped:Wait()
+                    vehicle:SetPrimaryPartCFrame(vehicle.PrimaryPart.CFrame)
+                end
+            end
         end
     end
     
@@ -1112,6 +1123,25 @@ local function HitboxExpander(enabled)
                     expandHitbox(player)
                 end
                 task.wait(1) -- Verificar cada segundo
+            end
+        end)
+        
+        -- Añadir verificación específica para vehículos
+        spawn(function()
+            while EnabledFeatures["HitboxExpander"] do
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local humanoid = player.Character:FindFirstChild("Humanoid")
+                        if humanoid and humanoid.SeatPart and humanoid.SeatPart.Parent then
+                            local vehicle = humanoid.SeatPart.Parent
+                            if vehicle:IsA("Model") and vehicle.PrimaryPart then
+                                -- Forzar actualización visual del vehículo más frecuentemente
+                                vehicle:SetPrimaryPartCFrame(vehicle.PrimaryPart.CFrame)
+                            end
+                        end
+                    end
+                end
+                task.wait(0.1) -- Verificación más frecuente para vehículos
             end
         end)
     else
