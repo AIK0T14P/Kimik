@@ -1059,19 +1059,66 @@ local function HitboxExpander(enabled)
     -- Función para expandir el hitbox de un jugador
     local function expandHitbox(player)
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
-            player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
-            player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
-            
             -- Verificar si el jugador está en un vehículo
             local humanoid = player.Character:FindFirstChild("Humanoid")
-            if humanoid and humanoid.SeatPart and humanoid.SeatPart.Parent then
+            local inVehicle = humanoid and humanoid.SeatPart and humanoid.SeatPart.Parent
+            
+            -- SOLUCIÓN: No expandir el hitbox de jugadores en vehículos
+            if inVehicle then
+                -- Mantener tamaño normal para jugadores en vehículos
+                player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
+                player.Character.HumanoidRootPart.Transparency = 1
+                
+                -- Crear un hitbox separado que siga al vehículo si no existe ya
                 local vehicle = humanoid.SeatPart.Parent
-                if vehicle:IsA("Model") and vehicle.PrimaryPart then
-                    -- Forzar actualización visual del vehículo
-                    RunService.RenderStepped:Wait()
-                    vehicle:SetPrimaryPartCFrame(vehicle.PrimaryPart.CFrame)
+                if enabled and vehicle:IsA("Model") and not vehicle:FindFirstChild("VehicleHitbox") then
+                    local vehicleHitbox = Instance.new("Part")
+                    vehicleHitbox.Name = "VehicleHitbox"
+                    vehicleHitbox.Size = Vector3.new(10, 10, 10)
+                    vehicleHitbox.Transparency = 0.5
+                    vehicleHitbox.CanCollide = false
+                    vehicleHitbox.Anchored = false
+                    vehicleHitbox.Material = Enum.Material.Neon
+                    
+                    -- Crear un BillboardGui para mostrar el nombre del jugador sobre el hitbox
+                    local billboardGui = Instance.new("BillboardGui")
+                    billboardGui.Size = UDim2.new(0, 100, 0, 30)
+                    billboardGui.Adornee = vehicleHitbox
+                    billboardGui.AlwaysOnTop = true
+                    
+                    local nameLabel = Instance.new("TextLabel")
+                    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+                    nameLabel.TextStrokeTransparency = 0
+                    nameLabel.Text = player.Name
+                    nameLabel.TextScaled = true
+                    nameLabel.Parent = billboardGui
+                    
+                    billboardGui.Parent = vehicleHitbox
+                    
+                    -- Vincular el hitbox al vehículo
+                    if vehicle.PrimaryPart then
+                        local attachment = Instance.new("Attachment")
+                        attachment.Parent = vehicleHitbox
+                        
+                        local attachment2 = Instance.new("Attachment")
+                        attachment2.Parent = vehicle.PrimaryPart
+                        
+                        local alignPosition = Instance.new("AlignPosition")
+                        alignPosition.Attachment0 = attachment
+                        alignPosition.Attachment1 = attachment2
+                        alignPosition.RigidityEnabled = true
+                        alignPosition.Parent = vehicleHitbox
+                        
+                        vehicleHitbox.Parent = vehicle
+                    end
                 end
+            else
+                -- Aplicar el tamaño expandido solo para jugadores a pie
+                player.Character.HumanoidRootPart.Size = enabled and Vector3.new(10, 10, 10) or Vector3.new(2, 2, 1)
+                player.Character.HumanoidRootPart.Transparency = enabled and 0.5 or 1
+                player.Character.HumanoidRootPart.CanCollide = false -- Prevenir problemas de colisión
             end
         end
     end
@@ -1085,6 +1132,7 @@ local function HitboxExpander(enabled)
     local playerAddedConnection
     local playerRemovingConnection
     local characterAddedConnections = {}
+    local humanoidStateChangedConnections = {}
     
     if enabled then
         -- Cuando se activa, configurar todas las conexiones necesarias
@@ -1095,6 +1143,18 @@ local function HitboxExpander(enabled)
             characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
                 task.wait(0.5) -- Pequeña espera para asegurar que el HumanoidRootPart esté cargado
                 expandHitbox(player)
+                
+                -- Detectar cuando el jugador se sube o baja de un vehículo
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoidStateChangedConnections[player] = humanoid.StateChanged:Connect(function(oldState, newState)
+                        if newState == Enum.HumanoidStateType.Seated or oldState == Enum.HumanoidStateType.Seated then
+                            -- El jugador se subió o bajó de un vehículo
+                            task.wait(0.1)
+                            expandHitbox(player)
+                        end
+                    end)
+                end
             end)
         end)
         
@@ -1104,7 +1164,33 @@ local function HitboxExpander(enabled)
                 characterAddedConnections[player] = player.CharacterAdded:Connect(function(character)
                     task.wait(0.5)
                     expandHitbox(player)
+                    
+                    -- Detectar cuando el jugador se sube o baja de un vehículo
+                    local humanoid = character:FindFirstChild("Humanoid")
+                    if humanoid then
+                        humanoidStateChangedConnections[player] = humanoid.StateChanged:Connect(function(oldState, newState)
+                            if newState == Enum.HumanoidStateType.Seated or oldState == Enum.HumanoidStateType.Seated then
+                                -- El jugador se subió o bajó de un vehículo
+                                task.wait(0.1)
+                                expandHitbox(player)
+                            end
+                        end)
+                    end
                 end)
+                
+                -- Para personajes actuales
+                if player.Character then
+                    local humanoid = player.Character:FindFirstChild("Humanoid")
+                    if humanoid then
+                        humanoidStateChangedConnections[player] = humanoid.StateChanged:Connect(function(oldState, newState)
+                            if newState == Enum.HumanoidStateType.Seated or oldState == Enum.HumanoidStateType.Seated then
+                                -- El jugador se subió o bajó de un vehículo
+                                task.wait(0.1)
+                                expandHitbox(player)
+                            end
+                        end)
+                    end
+                end
             end
         end
         
@@ -1113,6 +1199,11 @@ local function HitboxExpander(enabled)
             if characterAddedConnections[player] then
                 characterAddedConnections[player]:Disconnect()
                 characterAddedConnections[player] = nil
+            end
+            
+            if humanoidStateChangedConnections[player] then
+                humanoidStateChangedConnections[player]:Disconnect()
+                humanoidStateChangedConnections[player] = nil
             end
         end)
         
@@ -1123,25 +1214,6 @@ local function HitboxExpander(enabled)
                     expandHitbox(player)
                 end
                 task.wait(1) -- Verificar cada segundo
-            end
-        end)
-        
-        -- Añadir verificación específica para vehículos
-        spawn(function()
-            while EnabledFeatures["HitboxExpander"] do
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and player.Character then
-                        local humanoid = player.Character:FindFirstChild("Humanoid")
-                        if humanoid and humanoid.SeatPart and humanoid.SeatPart.Parent then
-                            local vehicle = humanoid.SeatPart.Parent
-                            if vehicle:IsA("Model") and vehicle.PrimaryPart then
-                                -- Forzar actualización visual del vehículo más frecuentemente
-                                vehicle:SetPrimaryPartCFrame(vehicle.PrimaryPart.CFrame)
-                            end
-                        end
-                    end
-                end
-                task.wait(0.1) -- Verificación más frecuente para vehículos
             end
         end)
     else
@@ -1161,11 +1233,23 @@ local function HitboxExpander(enabled)
             characterAddedConnections[player] = nil
         end
         
+        for player, connection in pairs(humanoidStateChangedConnections) do
+            connection:Disconnect()
+            humanoidStateChangedConnections[player] = nil
+        end
+        
         -- Restaurar hitboxes normales
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
                 player.Character.HumanoidRootPart.Transparency = 1
+            end
+        end
+        
+        -- Eliminar hitboxes de vehículos
+        for _, vehicle in pairs(workspace:GetDescendants()) do
+            if vehicle:IsA("Model") and vehicle:FindFirstChild("VehicleHitbox") then
+                vehicle.VehicleHitbox:Destroy()
             end
         end
     end
