@@ -87,7 +87,7 @@ local Languages = {
             HitboxExpander = "Expandir Hitbox",
             UITransparency = "Transparencia de Interfaz"
         },
-        loading = "Cargando..."
+        loading = ""
     },
     ["English"] = {
         -- ... (English translations)
