@@ -709,11 +709,6 @@ local function NoClip(enabled)
     end
 end
 
-local Player = game.Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local healEvent = ReplicatedStorage:WaitForChild("RequestHeal")
-
 -- 🔼 AUTOHEAL CON AUTO-DESACTIVACIÓN (5 segundos)
 local function AutoHeal(enabled)
     EnabledFeatures["AutoHeal"] = enabled
