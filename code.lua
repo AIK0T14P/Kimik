@@ -157,8 +157,6 @@ ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(1, -60, 0, 10)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
 ToggleButton.Image = "rbxassetid://114867769337838"
-ToggleButton.ImageRectOffset = Vector2.new(764, 244)
-ToggleButton.ImageRectSize = Vector2.new(36, 36)
 ToggleButton.Parent = ScreenGui
 ToggleButton.ZIndex = 10000 -- Valor extremadamente alto para estar por encima de todo
 
