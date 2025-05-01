@@ -30,8 +30,11 @@ local ResizeStart = nil
 local StartSize = nil
 
 -- Variables para guardado de posiciones
-local SavedPositions = {}
-local RespawnPoint = nil
+local EnabledFeatures = {}
+local RespawnPoint
+local HumanoidRootPart = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+HumanoidRootPart = HumanoidRootPart:WaitForChild("HumanoidRootPart")
+
 
 -- Tabla para almacenar el estado de las funciones
 local EnabledFeatures = {}
