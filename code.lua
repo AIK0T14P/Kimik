@@ -32,7 +32,6 @@ local StartSize = nil
 -- Variables para guardado de posiciones
 local SavedPositions = {}
 local RespawnPoint = nil
-local RespawnPoint
 
 -- Tabla para almacenar el estado de las funciones
 local EnabledFeatures = {}
