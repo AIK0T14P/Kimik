@@ -1008,8 +1008,11 @@ local function SaveRespawn(enabled)
         task.delay(3, function()
             if gui then
                 gui:Destroy()
+            end
+        end)
     end
 end
+
 
 
 local function DeleteRespawn(enabled)
