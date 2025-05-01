@@ -6,12 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local Teams = game:GetService("Teams")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-local RespawnPoint
 
 -- Variables principales
 local LocalPlayer = Players.LocalPlayer
@@ -38,6 +32,7 @@ local StartSize = nil
 -- Variables para guardado de posiciones
 local SavedPositions = {}
 local RespawnPoint = nil
+local RespawnPoint
 
 -- Tabla para almacenar el estado de las funciones
 local EnabledFeatures = {}
