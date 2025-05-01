@@ -60,7 +60,6 @@ local Languages = {
             Chams = "Siluetas",
             Tracers = "Trazadores",
             Fullbright = "Brillo Total",
-            Invisibility = "Invisibilidad",
             AntiAFK = "Anti AFK",
             AutoReset = "Auto Reinicio",
             RemoveFog = "Quitar Niebla",
