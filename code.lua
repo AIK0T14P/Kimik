@@ -107,7 +107,7 @@ LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 -- Fondo principal con gradiente
 local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
+LoadingFrame.Size = UDim2.new(9, 0, 9, 0)
 LoadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 LoadingFrame.ZIndex = 10000
 LoadingFrame.Parent = LoadingGui
