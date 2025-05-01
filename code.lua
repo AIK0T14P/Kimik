@@ -82,7 +82,6 @@ local Languages = {
             SpeedBoost = "Aumento de Velocidad",
             JumpBoost = "Aumento de Salto",
             Levitation = "Levitación",
-            Telekinesis = "Telequinesis",
             Wallbang = "Disparar a través de Paredes",
             AutoHeal = "Auto Curación",
             SpinBot = "Giro Automático",
