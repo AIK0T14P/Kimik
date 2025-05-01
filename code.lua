@@ -43,7 +43,7 @@ local EnabledFeatures = {}
 local Languages = {
     ["Español"] = {
         categories = {
-            Homenaje = "Lugar",
+            Home = "Home",
             Movement = "Movimiento",
             Combat = "Combate",
             Visuals = "Visuales",
@@ -1414,6 +1414,7 @@ end
 
 -- Categorías actualizadas
 local Categories = {
+    {name = "Home", icon = "rbxassetid://3926307971"},
     {name = "Movement", icon = "rbxassetid://3926307971"},
     {name = "Combat", icon = "rbxassetid://3926307971"},
     {name = "Visuals", icon = "rbxassetid://3926307971"},
@@ -1591,6 +1592,10 @@ end
 
 for _, feature in ipairs(CombatFeatures) do
     CreateToggle(feature.name, Sections.Combat, feature.callback)
+end
+
+for _, feature in ipairs(VisualFeatures) do
+    CreateToggle(feature.name, Sections.Home, feature.callback)
 end
 
 for _, feature in ipairs(VisualFeatures) do
