@@ -156,7 +156,7 @@ local ToggleButton = Instance.new("ImageButton")
 ToggleButton.Size = UDim2.new(0, 50, 0, 50)
 ToggleButton.Position = UDim2.new(1, -60, 0, 10)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
-ToggleButton.Image = "rbxassetid://99497723716691"
+ToggleButton.Image = "rbxassetid://125017430901101"
 ToggleButton.Parent = ScreenGui
 ToggleButton.ZIndex = 10000 -- Valor extremadamente alto para estar por encima de todo
 
