@@ -989,6 +989,7 @@ local function SaveRespawn(enabled)
         EnabledFeatures["SaveRespawn"] = true
         RespawnPoint = HumanoidRootPart.Position
 
+        -- Notificación visual
         local gui = Instance.new("ScreenGui")
         gui.Name = "RespawnNotification"
         gui.ResetOnSpawn = false
@@ -1006,8 +1007,22 @@ local function SaveRespawn(enabled)
         label.Parent = gui
 
         task.delay(3, function() gui:Destroy() end)
+
+        -- Esperar a que el personaje muera y luego teleport
+        task.spawn(function()
+            local char = Players.LocalPlayer.Character
+            local humanoid = char and char:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Died:Wait()
+                local newChar = Players.LocalPlayer.CharacterAdded:Wait()
+                local newRoot = newChar:WaitForChild("HumanoidRootPart")
+                task.wait(0.3)
+                newRoot.CFrame = CFrame.new(RespawnPoint)
+            end
+        end)
     end
 end
+
 
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
