@@ -98,104 +98,49 @@ local CurrentLanguage = "Español"
 local Texts = Languages[CurrentLanguage]
 
 -- Crear pantalla de carga
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-
--- Pantalla principal
 local LoadingGui = Instance.new("ScreenGui")
 LoadingGui.Name = "LoadingGui"
 LoadingGui.ResetOnSpawn = false
 LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LoadingGui.DisplayOrder = 9999
-LoadingGui.Parent = PlayerGui
-
--- Fondo oscuro con desenfoque suave
-local Blur = Instance.new("BlurEffect")
-Blur.Size = 12
-Blur.Parent = game.Lighting
+LoadingGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
+LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-LoadingFrame.ZIndex = 10000
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LoadingFrame.ZIndex = 10000 -- Valor muy alto para estar por encima de todo
 LoadingFrame.Parent = LoadingGui
 
--- Marco de barra de carga
 local LoadingBar = Instance.new("Frame")
-LoadingBar.Size = UDim2.new(0.4, 0, 0.015, 0)
-LoadingBar.Position = UDim2.new(0.3, 0, 0.6, 0)
-LoadingBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
+LoadingBar.Position = UDim2.new(0.3, 0, 0.5, 0)
+LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadingBar.BorderSizePixel = 0
 LoadingBar.ZIndex = 10001
-LoadingBar.AnchorPoint = Vector2.new(0, 0.5)
 LoadingBar.Parent = LoadingFrame
 
-local UICornerBar = Instance.new("UICorner")
-UICornerBar.CornerRadius = UDim.new(0, 6)
-UICornerBar.Parent = LoadingBar
-
--- Relleno de la barra
 local LoadingFill = Instance.new("Frame")
 LoadingFill.Size = UDim2.new(0, 0, 1, 0)
-LoadingFill.BackgroundColor3 = Color3.fromRGB(115, 85, 255)
+LoadingFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
 LoadingFill.BorderSizePixel = 0
 LoadingFill.ZIndex = 10002
 LoadingFill.Parent = LoadingBar
 
-local UICornerFill = Instance.new("UICorner")
-UICornerFill.CornerRadius = UDim.new(0, 6)
-UICornerFill.Parent = LoadingFill
-
--- Texto de carga con animación
 local LoadingText = Instance.new("TextLabel")
-LoadingText.Size = UDim2.new(0, 300, 0, 40)
-LoadingText.Position = UDim2.new(0.5, -150, 0.5, -80)
+LoadingText.Size = UDim2.new(0, 200, 0, 30)
+LoadingText.Position = UDim2.new(0.5, -100, 0.45, -15)
 LoadingText.BackgroundTransparency = 1
 LoadingText.Font = Enum.Font.GothamBold
-LoadingText.Text = "Cargando"
+LoadingText.Text = Texts.loading
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.TextSize = 28
+LoadingText.TextSize = 18
 LoadingText.ZIndex = 10003
-LoadingText.TextStrokeTransparency = 0.8
-LoadingText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 LoadingText.Parent = LoadingFrame
 
--- Animación de puntos suspensivos (...)
-task.spawn(function()
-	local dots = 0
-	while true do
-		LoadingText.Text = "Cargando" .. string.rep(".", dots)
-		dots = (dots + 1) % 4
-		task.wait(0.5)
-	end
-end)
-
--- Animación de la barra de carga
-local tween = TweenService:Create(LoadingFill, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-	Size = UDim2.new(1, 0, 1, 0)
-})
-tween:Play()
-tween.Completed:Wait()
-
--- Desvanecer todo al terminar
-local fadeOut = TweenService:Create(LoadingFrame, TweenInfo.new(1), {BackgroundTransparency = 1})
-local fadeText = TweenService:Create(LoadingText, TweenInfo.new(1), {TextTransparency = 1})
-local fadeBar = TweenService:Create(LoadingBar, TweenInfo.new(1), {BackgroundTransparency = 1})
-local fadeFill = TweenService:Create(LoadingFill, TweenInfo.new(1), {BackgroundTransparency = 1})
-
-fadeOut:Play()
-fadeText:Play()
-fadeBar:Play()
-fadeFill:Play()
-fadeFill.Completed:Wait()
-
--- Limpiar pantalla
-Blur:Destroy()
-LoadingGui:Destroy()
-
-
+-- Animación de carga
+local loadingTween = TweenService:Create(LoadingFill, TweenInfo.new(3), {Size = UDim2.new(1, 0, 1, 0)})
+loadingTween:Play()
+loadingTween.Completed:Wait()
 
 -- GUI Principal
 local ScreenGui = Instance.new("ScreenGui")
