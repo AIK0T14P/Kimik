@@ -709,19 +709,30 @@ local function NoClip(enabled)
     end
 end
 
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local healEvent = ReplicatedStorage:WaitForChild("RequestHeal")
+
+-- 🔼 AUTOHEAL CON AUTO-DESACTIVACIÓN (5 segundos)
 local function AutoHeal(enabled)
     EnabledFeatures["AutoHeal"] = enabled
     local connection
+
     if enabled then
         connection = RunService.Heartbeat:Connect(function()
-            if Humanoid.Health < Humanoid.MaxHealth then
-                Humanoid.Health = Humanoid.Health + 1
+            if Humanoid and Humanoid.Health < Humanoid.MaxHealth then
+                healEvent:FireServer()
             end
         end)
-    else
-        if connection then
-            connection:Disconnect()
-        end
+
+        -- 🔁 Desactivar después de 5 segundos automáticamente
+        task.delay(5, function()
+            if connection then
+                connection:Disconnect()
+                EnabledFeatures["AutoHeal"] = false
+            end
+        end)
     end
 end
 
