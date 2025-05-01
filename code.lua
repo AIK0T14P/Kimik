@@ -709,25 +709,28 @@ local function NoClip(enabled)
     end
 end
 
--- 🔼 AUTOHEAL CON AUTO-DESACTIVACIÓN (5 segundos)
 local function AutoHeal(enabled)
     EnabledFeatures["AutoHeal"] = enabled
     local connection
 
     if enabled then
         connection = RunService.Heartbeat:Connect(function()
-            if Humanoid and Humanoid.Health < Humanoid.MaxHealth then
-                healEvent:FireServer()
+            if Humanoid.Health < Humanoid.MaxHealth then
+                healEvent:FireServer() -- 🔁 Pide al servidor que cure
             end
         end)
 
-        -- 🔁 Desactivar después de 5 segundos automáticamente
+        -- ⏱️ Desactivar automáticamente a los 5 segundos
         task.delay(5, function()
             if connection then
                 connection:Disconnect()
                 EnabledFeatures["AutoHeal"] = false
             end
         end)
+    else
+        if connection then
+            connection:Disconnect()
+        end
     end
 end
 
