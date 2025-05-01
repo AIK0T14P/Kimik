@@ -1008,20 +1008,24 @@ local function SaveRespawn(enabled)
 
         task.delay(3, function() gui:Destroy() end)
 
-        -- Esperar a que el personaje muera y luego teleport
+        -- Mantener el bucle de teleport en cada respawn
         task.spawn(function()
-            local char = Players.LocalPlayer.Character
-            local humanoid = char and char:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.Died:Wait()
-                local newChar = Players.LocalPlayer.CharacterAdded:Wait()
-                local newRoot = newChar:WaitForChild("HumanoidRootPart")
-                task.wait(0.3)
-                newRoot.CFrame = CFrame.new(RespawnPoint)
+            while EnabledFeatures["SaveRespawn"] and RespawnPoint do
+                local char = Players.LocalPlayer.Character
+                local humanoid = char and char:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Died:Wait()
+                    local newChar = Players.LocalPlayer.CharacterAdded:Wait()
+                    local newRoot = newChar:WaitForChild("HumanoidRootPart")
+                    task.wait(0.3)
+                    newRoot.CFrame = CFrame.new(RespawnPoint)
+                end
+                task.wait(1)
             end
         end)
     end
 end
+
 
 
 -- Implementación mejorada del ESP con colores de equipo
