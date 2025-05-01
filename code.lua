@@ -671,6 +671,31 @@ local function ToggleSuperJump(value)
     Humanoid.JumpHeight = 7.2
 end
 
+local function DeleteRespawn()
+    EnabledFeatures["SaveRespawn"] = false
+    RespawnPoint = nil
+
+    -- Notificación de que se borró el punto
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "DeleteRespawnNotification"
+    gui.ResetOnSpawn = false
+    gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 300, 0, 50)
+    label.Position = UDim2.new(0.5, -150, 0.8, 0)
+    label.BackgroundTransparency = 0.3
+    label.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 18
+    label.Text = "❌ Punto de reaparición borrado"
+    label.Parent = gui
+
+    task.delay(3, function() gui:Destroy() end)
+end
+
+
 local function InfiniteJump(enabled)
     EnabledFeatures["InfiniteJump"] = enabled
     local connection
@@ -1496,7 +1521,7 @@ local PlayerFeatures = {
     {name = "SaveRespawn", callback = function()
         SaveRespawn(true)
     end},
-    {name = "DeleteRespawn", callback = function() end},
+    {name = "DeleteRespawn", callback = function() DeleteRespawn() end},
     {name = "SavePosition", callback = function() end},
     {name = "TeleportToPosition", callback = function() end},
 }
