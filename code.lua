@@ -111,6 +111,19 @@ LoadingFrame.BackgroundTransparency = 1 -- fondo invisible
 LoadingFrame.ZIndex = 10000
 LoadingFrame.Parent = LoadingGui
 
+-- Efecto de desenfoque (blur)
+local BlurEffect = Instance.new("BlurEffect")
+BlurEffect.Size = 0 -- Comienza sin desenfoque
+BlurEffect.Name = "LoadingBlur"
+BlurEffect.Parent = game:GetService("Lighting")
+
+-- Animación del desenfoque
+local blurTween = game:GetService("TweenService"):Create(
+    BlurEffect, 
+    TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+    {Size = 20} -- Valor máximo del desenfoque
+)
+blurTween:Play()
 
 local LoadingBar = Instance.new("Frame")
 LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
@@ -139,8 +152,21 @@ LoadingText.ZIndex = 10003
 LoadingText.Parent = LoadingFrame
 
 -- Animación de carga
+local TweenService = game:GetService("TweenService")
 local loadingTween = TweenService:Create(LoadingFill, TweenInfo.new(3), {Size = UDim2.new(1, 0, 1, 0)})
 loadingTween:Play()
+loadingTween.Completed:Connect(function()
+    -- Quitar el desenfoque cuando termine la carga
+    local unblurTween = TweenService:Create(
+        BlurEffect, 
+        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+        {Size = 0}
+    )
+    unblurTween:Play()
+    unblurTween.Completed:Connect(function()
+        BlurEffect:Destroy() -- Eliminar el efecto de desenfoque
+    end)
+end)
 loadingTween.Completed:Wait()
 
 -- GUI Principal
