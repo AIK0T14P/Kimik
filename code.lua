@@ -984,13 +984,40 @@ end
 local function SaveRespawn(enabled)
     EnabledFeatures["SaveRespawn"] = enabled
     if enabled then
-        -- Guardar la posición actual como punto de reaparición
+        -- 🔹 Asegurar referencias actualizadas
+        local Character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+        local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+        local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+        -- 🔹 Guardar la posición actual
         RespawnPoint = HumanoidRootPart.Position
-        
-        -- Mostrar mensaje de confirmación (opcional - puedes eliminarlo)
-        print("Punto de reaparición guardado")
+
+        -- 🔹 Crear GUI de notificación
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "RespawnNotification"
+        gui.ResetOnSpawn = false
+        gui.Parent = PlayerGui
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0, 300, 0, 50)
+        label.Position = UDim2.new(0.5, -150, 0.8, 0)
+        label.BackgroundTransparency = 0.3
+        label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 18
+        label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
+        label.Parent = gui
+
+        -- 🔹 Eliminar notificación tras 3 segundos
+        task.delay(3, function()
+            if gui then
+                gui:Destroy()
+            end
+        end)
     end
 end
+
 
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
