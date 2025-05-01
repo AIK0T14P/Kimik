@@ -1056,116 +1056,76 @@ end
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
+    local ESPFolder = Instance.new("Folder")
+    ESPFolder.Name = "ESPFolder"
+    ESPFolder.Parent = game.CoreGui
     
-    if game.CoreGui:FindFirstChild("ESPFolder") then
-        game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
+    local function getTeamColor(player)
+        if player.Team then
+            return player.Team.TeamColor.Color
+        end
+        return Color3.fromRGB(255, 0, 0) -- Color por defecto si no tiene equipo
     end
-    
-    local ESPFolder
-    if enabled then
-        ESPFolder = Instance.new("Folder")
-        ESPFolder.Name = "ESPFolder"
-        ESPFolder.Parent = game.CoreGui
-    else
-        return
-    end
-    
-    local connections = {}
-    local drawingObjects = {}
     
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        local highlight = Instance.new("Highlight")
-        highlight.Name = player.Name .. "_Highlight"
-        highlight.FillColor = player.Team and player.Team.TeamColor.Color or Color3.new(1, 0, 0)
-        highlight.OutlineColor = Color3.new(1, 1, 1)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = nil
-        highlight.Parent = ESPFolder
+        local function createBoxHighlight()
+            local highlight = Instance.new("Highlight")
+            highlight.Name = player.Name .. "Highlight"
+            highlight.FillColor = getTeamColor(player)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Parent = ESPFolder
+            return highlight
+        end
         
-        local nameTag = Drawing.new("Text")
-        nameTag.Visible = false
-        nameTag.Center = true
-        nameTag.Outline = true
-        nameTag.Size = 18
-        nameTag.Color = Color3.new(1, 0, 0)
-        nameTag.OutlineColor = Color3.new(0, 0, 0)
-        table.insert(drawingObjects, nameTag)
+        local function createNameTag()
+            local billboardGui = Instance.new("BillboardGui")
+            billboardGui.Name = player.Name .. "NameTag"
+            billboardGui.Size = UDim2.new(0, 200, 0, 50)
+            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+            billboardGui.AlwaysOnTop = true
+            billboardGui.Parent = ESPFolder
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 0, 20)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = getTeamColor(player)
+            nameLabel.TextStrokeTransparency = 0
+            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+            nameLabel.Font = Enum.Font.SourceSansBold
+            nameLabel.TextScaled = true
+            nameLabel.Parent = billboardGui
+            
+            return billboardGui, nameLabel
+        end
         
-        local healthTag = Drawing.new("Text")
-        healthTag.Visible = false
-        healthTag.Center = true
-        healthTag.Outline = true
-        healthTag.Size = 18
-        healthTag.Color = Color3.new(0, 1, 0)
-        healthTag.OutlineColor = Color3.new(0, 0, 0)
-        table.insert(drawingObjects, healthTag)
+        local highlight = createBoxHighlight()
+        local nameTag, nameLabel = createNameTag()
         
         local function updateESP()
-            if not EnabledFeatures["ESP"] then
-                nameTag.Visible = false
-                healthTag.Visible = false
-                return
-            end
-            
-            -- Intentar obtener el personaje actual del jugador
-            local character = player.Character or player.CharacterAdded:Wait()
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local head = character:FindFirstChild("Head")
-            
-            if not humanoid or not head then
-                nameTag.Visible = false
-                healthTag.Visible = false
-                return
-            end
-            
-            highlight.Adornee = character
-            
-            local headPos = head.Position + Vector3.new(0, 1, 0)
-            local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
-            
-            if onScreen then
-                local distance = (Camera.CFrame.Position - head.Position).Magnitude
-                local scaleFactor = math.clamp(30 / distance, 0.5, 2)
-                local textSize = math.floor(18 * scaleFactor)
-                
-                nameTag.Size = textSize
-                healthTag.Size = textSize
-                
-                nameTag.Text = player.Name
-                nameTag.Position = Vector2.new(screenPos.X, screenPos.Y)
-                nameTag.Visible = true
-                
-                local health = math.floor(humanoid.Health)
-                local maxHealth = math.floor(humanoid.MaxHealth)
-                
-                healthTag.Text = string.format("%d/%d", health, maxHealth)
-                healthTag.Position = Vector2.new(screenPos.X, screenPos.Y + textSize + 2)
-                healthTag.Visible = true
-            else
-                nameTag.Visible = false
-                healthTag.Visible = false
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Parent = player.Character
+                nameTag.Parent = player.Character.HumanoidRootPart
+                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
+                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                highlight.FillColor = getTeamColor(player)
+                nameLabel.TextColor3 = getTeamColor(player)
             end
         end
         
-        local function onCharacterAdded()
-            task.wait(0.5) -- Esperar a que el personaje cargue completamente
-            updateESP()
-        end
-        
-        -- Conectar actualización del ESP
         local connection = RunService.RenderStepped:Connect(updateESP)
-        table.insert(connections, connection)
         
-        -- Detectar cuando el personaje reaparece
-        player.CharacterAdded:Connect(onCharacterAdded)
+        player.CharacterAdded:Connect(function(char)
+            highlight.Parent = char
+            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
+        end)
         
         return {
             highlight = highlight,
             nameTag = nameTag,
-            healthTag = healthTag,
             connection = connection
         }
     end
@@ -1173,54 +1133,36 @@ local function ESP(enabled)
     local espData = {}
     
     if enabled then
+        -- Crear ESP para jugadores existentes
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 espData[player] = createESP(player)
             end
         end
         
-        local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        -- Crear ESP para nuevos jugadores
+        Players.PlayerAdded:Connect(function(player)
             espData[player] = createESP(player)
         end)
-        table.insert(connections, playerAddedConnection)
         
-        local function cleanupESP()
-            if not EnabledFeatures["ESP"] then
-                for _, data in pairs(espData) do
-                    if data.highlight then data.highlight:Destroy() end
-                    if data.nameTag then data.nameTag:Remove() end
-                    if data.healthTag then data.healthTag:Remove() end
-                    if data.connection then data.connection:Disconnect() end
-                end
-                
-                for _, obj in ipairs(drawingObjects) do
-                    obj:Remove()
-                end
-                
-                if ESPFolder and ESPFolder.Parent then
-                    ESPFolder:Destroy()
-                end
+        -- Limpiar ESP cuando los jugadores salen
+        Players.PlayerRemoving:Connect(function(player)
+            if espData[player] then
+                espData[player].highlight:Destroy()
+                espData[player].nameTag:Destroy()
+                espData[player].connection:Disconnect()
+                espData[player] = nil
             end
+        end)
+    else
+        -- Limpiar todo el ESP
+        for player, data in pairs(espData) do
+            data.highlight:Destroy()
+            data.nameTag:Destroy()
+            data.connection:Disconnect()
+            espData[player] = nil
         end
-        
-        local gameExitConnection = game:BindToClose(cleanupESP)
-        table.insert(connections, gameExitConnection)
-        
-        _G.CleanupESP = cleanupESP
-    end
-    
-    return espData
-end
-
-local function DisableESP()
-    EnabledFeatures["ESP"] = false
-    
-    if _G.CleanupESP then
-        _G.CleanupESP()
-    end
-    
-    if game.CoreGui:FindFirstChild("ESPFolder") then
-        game.CoreGui:FindFirstChild("ESPFolder"):Destroy()
+        ESPFolder:Destroy()
     end
 end
 
