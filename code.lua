@@ -1474,7 +1474,9 @@ local VisualFeatures = {
 local PlayerFeatures = {
     {name = "AntiAFK", callback = function() end},
     {name = "AutoReset", callback = function() end},
-    {name = "SaveRespawn", callback = function() end},
+    {name = "SaveRespawn", callback = function()
+        SaveRespawn(true)
+    end},
     {name = "DeleteRespawn", callback = function() end},
     {name = "SavePosition", callback = function() end},
     {name = "TeleportToPosition", callback = function() end},
