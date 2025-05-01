@@ -1738,11 +1738,6 @@ local MovementFeatures = {
 }
 
 local CombatFeatures = {
-    {name = "Reach", callback = Reach},
-    {name = "AutoDodge", callback = AutoDodge},
-    {name = "AutoAim", callback = AutoAim},
-    {name = "DamageMultiplier", callback = DamageMultiplier},
-    {name = "InstantKill", callback = InstantKill},
     {name = "AutoHeal", callback = AutoHeal},
     {name = "SpinBot", callback = SpinBot},
     {name = "AntiAim", callback = AntiAim},
@@ -1764,7 +1759,6 @@ local PlayerFeatures = {
     {name = "DeleteRespawn", callback = function() end},
     {name = "SavePosition", callback = function() end},
     {name = "TeleportToPosition", callback = function() end},
-    {name = "Telekinesis", callback = Telekinesis}
 }
 
 local WorldFeatures = {
@@ -1984,26 +1978,13 @@ local function SetupRespawnPersistence()
                     InfiniteJump(true)
                 elseif feature == "NoClip" then
                     NoClip(true)
-                elseif feature == "Reach" then
-                    Reach(true)
-                elseif feature == "AutoDodge" then
-                    AutoDodge(true)
-                elseif feature == "AutoAim" then
-                    AutoAim(true)
-                elseif feature == "DamageMultiplier" then
-                    DamageMultiplier(true)
-                elseif feature == "InstantKill" then
-                    InstantKill(true)
                 elseif feature == "AutoHeal" then
                     AutoHeal(true)
                 elseif feature == "BunnyHop" then
                     BunnyHop(true)
                 elseif feature == "SpinBot" then
                     SpinBot(true)
-                elseif feature == "AntiAim" then
-                    AntiAim(true)
                 elseif feature == "HitboxExpander" then
-                    -- HitboxExpander ya es persistente con la implementación mejorada
                 elseif feature == "ESP" then
                     ESP(true)
                 elseif feature == "Chams" then
@@ -2014,8 +1995,6 @@ local function SetupRespawnPersistence()
                     Fullbright(true)
                 elseif feature == "Levitation" then
                     Levitation(true)
-                elseif feature == "Telekinesis" then
-                    Telekinesis(true)
                 end
             end
         end
