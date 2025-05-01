@@ -650,6 +650,312 @@ local function CreateSlider(name, section, callback, min, max, default)
     end
 end
 
+-- Función para guardar la posición actual como punto de reaparición
+local function SaveRespawn(enabled)
+    if enabled then
+        -- Guardar la posición actual como punto de reaparición
+        RespawnPoint = HumanoidRootPart.Position
+        
+        -- Mostrar mensaje de confirmación
+        local notification = Instance.new("TextLabel")
+        notification.Size = UDim2.new(0, 200, 0, 30)
+        notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notification.Text = "Punto de reaparición guardado"
+        notification.Font = Enum.Font.GothamBold
+        notification.TextSize = 14
+        notification.BorderSizePixel = 0
+        notification.ZIndex = 10001
+        
+        local notificationCorner = Instance.new("UICorner")
+        notificationCorner.CornerRadius = UDim.new(0, 6)
+        notificationCorner.Parent = notification
+        
+        notification.Parent = ScreenGui
+        
+        -- Eliminar la notificación después de 2 segundos
+        game:GetService("Debris"):AddItem(notification, 2)
+    end
+end
+
+-- Función para eliminar el punto de reaparición guardado
+local function DeleteRespawn(enabled)
+    if enabled then
+        -- Eliminar el punto de reaparición guardado
+        RespawnPoint = nil
+        
+        -- Mostrar mensaje de confirmación
+        local notification = Instance.new("TextLabel")
+        notification.Size = UDim2.new(0, 200, 0, 30)
+        notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notification.Text = "Punto de reaparición eliminado"
+        notification.Font = Enum.Font.GothamBold
+        notification.TextSize = 14
+        notification.BorderSizePixel = 0
+        notification.ZIndex = 10001
+        
+        local notificationCorner = Instance.new("UICorner")
+        notificationCorner.CornerRadius = UDim.new(0, 6)
+        notificationCorner.Parent = notification
+        
+        notification.Parent = ScreenGui
+        
+        -- Eliminar la notificación después de 2 segundos
+        game:GetService("Debris"):AddItem(notification, 2)
+    end
+end
+
+-- Implementación de SavePosition y TeleportToPosition
+local function SavePosition(enabled)
+    if enabled then
+        -- Crear un diálogo para nombrar la posición
+        local InputFrame = Instance.new("Frame")
+        InputFrame.Size = UDim2.new(0, 250, 0, 120)
+        InputFrame.Position = UDim2.new(0.5, -125, 0.5, -60)
+        InputFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        InputFrame.BorderSizePixel = 0
+        InputFrame.ZIndex = 10002
+        
+        local InputCorner = Instance.new("UICorner")
+        InputCorner.CornerRadius = UDim.new(0, 8)
+        InputCorner.Parent = InputFrame
+        
+        local InputTitle = Instance.new("TextLabel")
+        InputTitle.Size = UDim2.new(1, 0, 0, 30)
+        InputTitle.BackgroundTransparency = 1
+        InputTitle.Text = "Guardar Posición"
+        InputTitle.Font = Enum.Font.GothamBold
+        InputTitle.TextSize = 16
+        InputTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        InputTitle.ZIndex = 10003
+        InputTitle.Parent = InputFrame
+        
+        local InputBox = Instance.new("TextBox")
+        InputBox.Size = UDim2.new(0.8, 0, 0, 30)
+        InputBox.Position = UDim2.new(0.1, 0, 0.35, 0)
+        InputBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        InputBox.BorderSizePixel = 0
+        InputBox.PlaceholderText = "Nombre de la posición"
+        InputBox.Text = ""
+        InputBox.Font = Enum.Font.Gotham
+        InputBox.TextSize = 14
+        InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        InputBox.ZIndex = 10003
+        InputBox.Parent = InputFrame
+        
+        local InputBoxCorner = Instance.new("UICorner")
+        InputBoxCorner.CornerRadius = UDim.new(0, 4)
+        InputBoxCorner.Parent = InputBox
+        
+        local SaveButton = Instance.new("TextButton")
+        SaveButton.Size = UDim2.new(0.4, 0, 0, 30)
+        SaveButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+        SaveButton.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
+        SaveButton.BorderSizePixel = 0
+        SaveButton.Text = "Guardar"
+        SaveButton.Font = Enum.Font.GothamBold
+        SaveButton.TextSize = 14
+        SaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        SaveButton.ZIndex = 10003
+        SaveButton.Parent = InputFrame
+        
+        local SaveButtonCorner = Instance.new("UICorner")
+        SaveButtonCorner.CornerRadius = UDim.new(0, 4)
+        SaveButtonCorner.Parent = SaveButton
+        
+        local CancelButton = Instance.new("TextButton")
+        CancelButton.Size = UDim2.new(0.4, 0, 0, 30)
+        CancelButton.Position = UDim2.new(0.5, 0, 0.7, 0)
+        CancelButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        CancelButton.BorderSizePixel = 0
+        CancelButton.Text = "Cancelar"
+        CancelButton.Font = Enum.Font.GothamBold
+        CancelButton.TextSize = 14
+        CancelButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CancelButton.ZIndex = 10003
+        CancelButton.Parent = InputFrame
+        
+        local CancelButtonCorner = Instance.new("UICorner")
+        CancelButtonCorner.CornerRadius = UDim.new(0, 4)
+        CancelButtonCorner.Parent = CancelButton
+        
+        InputFrame.Parent = ScreenGui
+        
+        -- Funcionalidad de los botones
+        SaveButton.MouseButton1Click:Connect(function()
+            local posName = InputBox.Text
+            if posName ~= "" then
+                SavedPositions[posName] = HumanoidRootPart.Position
+                
+                -- Mostrar mensaje de confirmación
+                local notification = Instance.new("TextLabel")
+                notification.Size = UDim2.new(0, 200, 0, 30)
+                notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+                notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+                notification.Text = "Posición '" .. posName .. "' guardada"
+                notification.Font = Enum.Font.GothamBold
+                notification.TextSize = 14
+                notification.BorderSizePixel = 0
+                notification.ZIndex = 10001
+                
+                local notificationCorner = Instance.new("UICorner")
+                notificationCorner.CornerRadius = UDim.new(0, 6)
+                notificationCorner.Parent = notification
+                
+                notification.Parent = ScreenGui
+                
+                -- Eliminar la notificación después de 2 segundos
+                game:GetService("Debris"):AddItem(notification, 2)
+            end
+            InputFrame:Destroy()
+        end)
+        
+        CancelButton.MouseButton1Click:Connect(function()
+            InputFrame:Destroy()
+        end)
+    end
+end
+
+local function TeleportToPosition(enabled)
+    if enabled and next(SavedPositions) ~= nil then
+        -- Crear un menú para seleccionar la posición
+        local SelectFrame = Instance.new("Frame")
+        SelectFrame.Size = UDim2.new(0, 250, 0, 200)
+        SelectFrame.Position = UDim2.new(0.5, -125, 0.5, -100)
+        SelectFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        SelectFrame.BorderSizePixel = 0
+        SelectFrame.ZIndex = 10002
+        
+        local SelectCorner = Instance.new("UICorner")
+        SelectCorner.CornerRadius = UDim.new(0, 8)
+        SelectCorner.Parent = SelectFrame
+        
+        local SelectTitle = Instance.new("TextLabel")
+        SelectTitle.Size = UDim2.new(1, 0, 0, 30)
+        SelectTitle.BackgroundTransparency = 1
+        SelectTitle.Text = "Seleccionar Posición"
+        SelectTitle.Font = Enum.Font.GothamBold
+        SelectTitle.TextSize = 16
+        SelectTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        SelectTitle.ZIndex = 10003
+        SelectTitle.Parent = SelectFrame
+        
+        local SelectScroll = Instance.new("ScrollingFrame")
+        SelectScroll.Size = UDim2.new(0.9, 0, 0.6, 0)
+        SelectScroll.Position = UDim2.new(0.05, 0, 0.2, 0)
+        SelectScroll.BackgroundTransparency = 1
+        SelectScroll.BorderSizePixel = 0
+        SelectScroll.ScrollBarThickness = 4
+        SelectScroll.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
+        SelectScroll.ZIndex = 10003
+        SelectScroll.Parent = SelectFrame
+        
+        local UIListLayout = Instance.new("UIListLayout")
+        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        UIListLayout.Padding = UDim.new(0, 5)
+        UIListLayout.Parent = SelectScroll
+        
+        -- Añadir botones para cada posición guardada
+        local yPos = 0
+        for name, _ in pairs(SavedPositions) do
+            local PosButton = Instance.new("TextButton")
+            PosButton.Size = UDim2.new(1, -10, 0, 30)
+            PosButton.Position = UDim2.new(0, 5, 0, yPos)
+            PosButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            PosButton.BorderSizePixel = 0
+            PosButton.Text = name
+            PosButton.Font = Enum.Font.Gotham
+            PosButton.TextSize = 14
+            PosButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            PosButton.ZIndex = 10004
+            PosButton.Parent = SelectScroll
+            
+            local PosButtonCorner = Instance.new("UICorner")
+            PosButtonCorner.CornerRadius = UDim.new(0, 4)
+            PosButtonCorner.Parent = PosButton
+            
+            PosButton.MouseButton1Click:Connect(function()
+                HumanoidRootPart.CFrame = CFrame.new(SavedPositions[name])
+                
+                -- Mostrar mensaje de confirmación
+                local notification = Instance.new("TextLabel")
+                notification.Size = UDim2.new(0, 200, 0, 30)
+                notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+                notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+                notification.Text = "Teletransportado a '" .. name .. "'"
+                notification.Font = Enum.Font.GothamBold
+                notification.TextSize = 14
+                notification.BorderSizePixel = 0
+                notification.ZIndex = 10001
+                
+                local notificationCorner = Instance.new("UICorner")
+                notificationCorner.CornerRadius = UDim.new(0, 6)
+                notificationCorner.Parent = notification
+                
+                notification.Parent = ScreenGui
+                
+                -- Eliminar la notificación después de 2 segundos
+                game:GetService("Debris"):AddItem(notification, 2)
+                
+                SelectFrame:Destroy()
+            end)
+            
+            yPos = yPos + 35
+        end
+        
+        -- Ajustar el tamaño del contenido
+        SelectScroll.CanvasSize = UDim2.new(0, 0, 0, yPos)
+        
+        local CloseButton = Instance.new("TextButton")
+        CloseButton.Size = UDim2.new(0.8, 0, 0, 30)
+        CloseButton.Position = UDim2.new(0.1, 0, 0.85, 0)
+        CloseButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        CloseButton.BorderSizePixel = 0
+        CloseButton.Text = "Cerrar"
+        CloseButton.Font = Enum.Font.GothamBold
+        CloseButton.TextSize = 14
+        CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CloseButton.ZIndex = 10003
+        CloseButton.Parent = SelectFrame
+        
+        local CloseButtonCorner = Instance.new("UICorner")
+        CloseButtonCorner.CornerRadius = UDim.new(0, 4)
+        CloseButtonCorner.Parent = CloseButton
+        
+        CloseButton.MouseButton1Click:Connect(function()
+            SelectFrame:Destroy()
+        end)
+        
+        SelectFrame.Parent = ScreenGui
+    elseif enabled then
+        -- Mostrar mensaje si no hay posiciones guardadas
+        local notification = Instance.new("TextLabel")
+        notification.Size = UDim2.new(0, 200, 0, 30)
+        notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notification.Text = "No hay posiciones guardadas"
+        notification.Font = Enum.Font.GothamBold
+        notification.TextSize = 14
+        notification.BorderSizePixel = 0
+        notification.ZIndex = 10001
+        
+        local notificationCorner = Instance.new("UICorner")
+        notificationCorner.CornerRadius = UDim.new(0, 6)
+        notificationCorner.Parent = notification
+        
+        notification.Parent = ScreenGui
+        
+        -- Eliminar la notificación después de 2 segundos
+        game:GetService("Debris"):AddItem(notification, 2)
+    end
+end
+
 -- Funciones de habilidades mejoradas
 local function ToggleSpeed(value)
     EnabledFeatures["Speed"] = value
@@ -1053,6 +1359,8 @@ local function ESP(enabled)
             
             local headPos = head.Position + Vector3.new(0, 1, 0)
             local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
+              1, 0)
+            local screenPos, onScreen = Camera:WorldToViewportPoint(headPos)
             
             if onScreen then
                 local distance = (Camera.CFrame.Position - head.Position).Magnitude
@@ -1446,10 +1754,10 @@ local VisualFeatures = {
 local PlayerFeatures = {
     {name = "AntiAFK", callback = function() end},
     {name = "AutoReset", callback = function() end},
-    {name = "SaveRespawn", callback = function() end},
-    {name = "DeleteRespawn", callback = function() end},
-    {name = "SavePosition", callback = function() end},
-    {name = "TeleportToPosition", callback = function() end},
+    {name = "SaveRespawn", callback = SaveRespawn},
+    {name = "DeleteRespawn", callback = DeleteRespawn},
+    {name = "SavePosition", callback = SavePosition},
+    {name = "TeleportToPosition", callback = TeleportToPosition},
 }
 
 local WorldFeatures = {
@@ -1655,6 +1963,33 @@ local function SetupRespawnPersistence()
             end
         end
         
+        -- Teletransportar al punto guardado si existe
+        if RespawnPoint then
+            task.wait(0.5) -- Esperar a que el personaje cargue completamente
+            HumanoidRootPart.CFrame = CFrame.new(RespawnPoint)
+            
+            -- Mostrar mensaje de confirmación
+            local notification = Instance.new("TextLabel")
+            notification.Size = UDim2.new(0, 200, 0, 30)
+            notification.Position = UDim2.new(0.5, -100, 0.8, 0)
+            notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+            notification.Text = "Teletransportado al punto guardado"
+            notification.Font = Enum.Font.GothamBold
+            notification.TextSize = 14
+            notification.BorderSizePixel = 0
+            notification.ZIndex = 10001
+            
+            local notificationCorner = Instance.new("UICorner")
+            notificationCorner.CornerRadius = UDim.new(0, 6)
+            notificationCorner.Parent = notification
+            
+            notification.Parent = ScreenGui
+            
+            -- Eliminar la notificación después de 2 segundos
+            game:GetService("Debris"):AddItem(notification, 2)
+        end
+        
         -- Reactivar funciones habilitadas después del respawn
         for feature, value in pairs(EnabledFeatures) do
             if value then
@@ -1662,6 +1997,7 @@ local function SetupRespawnPersistence()
                     Humanoid.WalkSpeed = value
                 elseif feature == "AumentV" then
                     Humanoid.MaxHealth = value
+                    Humanoid.Health = value
                 elseif feature == "SuperJump" then
                     Humanoid.JumpPower = value
                     Humanoid.JumpHeight = 7.2
@@ -1676,6 +2012,7 @@ local function SetupRespawnPersistence()
                 elseif feature == "SpinBot" then
                     SpinBot(true)
                 elseif feature == "HitboxExpander" then
+                    HitboxExpander(true)
                 elseif feature == "ESP" then
                     ESP(true)
                 elseif feature == "Chams" then
