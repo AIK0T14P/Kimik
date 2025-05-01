@@ -982,21 +982,14 @@ local function Levitation(enabled)
 end
 
 local function SaveRespawn(enabled)
-    EnabledFeatures["SaveRespawn"] = enabled
     if enabled then
-        -- 🔹 Asegurar referencias actualizadas
-        local Character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
-        local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-        local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-        -- 🔹 Guardar la posición actual
+        EnabledFeatures["SaveRespawn"] = true
         RespawnPoint = HumanoidRootPart.Position
 
-        -- 🔹 Crear GUI de notificación
         local gui = Instance.new("ScreenGui")
         gui.Name = "RespawnNotification"
         gui.ResetOnSpawn = false
-        gui.Parent = PlayerGui
+        gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(0, 300, 0, 50)
@@ -1009,15 +1002,9 @@ local function SaveRespawn(enabled)
         label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
         label.Parent = gui
 
-        -- 🔹 Eliminar notificación tras 3 segundos
-        task.delay(3, function()
-            if gui then
-                gui:Destroy()
-            end
-        end)
+        task.delay(3, function() gui:Destroy() end)
     end
 end
-
 
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
