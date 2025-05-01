@@ -992,37 +992,6 @@ local function SaveRespawn(enabled)
     end
 end
 
-
-
-local function DeleteRespawn(enabled)
-    EnabledFeatures["DeleteRespawn"] = enabled
-    if enabled then
-        -- Eliminar el punto de reaparición guardado
-        RespawnPoint = nil
-        
-        -- Mostrar mensaje de confirmación (opcional - puedes eliminarlo)
-        print("Punto de reaparición eliminado")
-    end
-end
-
--- Esta función debe ejecutarse una vez para configurar la persistencia
-local function SetupRespawnPersistence()
-    LocalPlayer.CharacterAdded:Connect(function(newCharacter)
-        Character = newCharacter
-        Humanoid = Character:WaitForChild("Humanoid")
-        HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-        
-        -- Teletransportar al punto guardado si existe
-        if RespawnPoint then
-            task.wait(0.5) -- Esperar a que el personaje cargue completamente
-            HumanoidRootPart.CFrame = CFrame.new(RespawnPoint)
-            
-            -- Mensaje opcional - puedes eliminarlo
-            print("Teletransportado al punto de reaparición guardado")
-        end
-    end)
-end
-
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
     EnabledFeatures["ESP"] = enabled
