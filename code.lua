@@ -87,7 +87,7 @@ local Languages = {
             HitboxExpander = "Expandir Hitbox",
             UITransparency = "Transparencia de Interfaz"
         },
-        loading = ""
+        loading = "Cargando..."
     },
     ["English"] = {
         -- ... (English translations)
@@ -97,131 +97,35 @@ local Languages = {
 local CurrentLanguage = "Español"
 local Texts = Languages[CurrentLanguage]
 
--- Crear pantalla de carga mejorada visualmente
+-- Crear pantalla de carga
 local LoadingGui = Instance.new("ScreenGui")
 LoadingGui.Name = "LoadingGui"
 LoadingGui.ResetOnSpawn = false
 LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LoadingGui.DisplayOrder = 9999
+LoadingGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
 LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- Fondo principal con gradiente
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LoadingFrame.ZIndex = 10000 -- Valor muy alto para estar por encima de todo
+LoadingFrame.Parent = LoadingGui
 
--- Animación del gradiente
-spawn(function()
-    local offset = 0
-    while LoadingGui.Parent do
-        BackgroundGradient.Offset = Vector2.new(offset, 0)
-        offset = offset - 0.001
-        if offset <= -1 then offset = 0 end
-        wait(0.02)
-    end
-end)
-
--- Logo o título del juego
-local Logo = Instance.new("ImageLabel")
-Logo.Size = UDim2.new(0, 150, 0, 150)
-Logo.Position = UDim2.new(0.5, -75, 0.4, -75)
-Logo.BackgroundTransparency = 1
-Logo.Image = "rbxassetid://6034684949" -- Reemplaza con tu ID de imagen
-Logo.ImageColor3 = Color3.fromRGB(147, 112, 219)
-Logo.ZIndex = 10001
-Logo.Parent = LoadingFrame
-
--- Efecto de brillo para el logo
-local LogoGlow = Instance.new("ImageLabel")
-LogoGlow.Size = UDim2.new(1.2, 0, 1.2, 0)
-LogoGlow.Position = UDim2.new(-0.1, 0, -0.1, 0)
-LogoGlow.BackgroundTransparency = 1
-LogoGlow.Image = "rbxassetid://6034684949" -- Mismo ID que el logo
-LogoGlow.ImageTransparency = 0.7
-LogoGlow.ImageColor3 = Color3.fromRGB(147, 112, 219)
-LogoGlow.ZIndex = 10000
-LogoGlow.Parent = Logo
-
--- Animación de pulsación para el logo
-spawn(function()
-    while LoadingGui.Parent do
-        local tweenGrow = TweenService:Create(LogoGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Size = UDim2.new(1.3, 0, 1.3, 0),
-            ImageTransparency = 0.8
-        })
-        
-        local tweenShrink = TweenService:Create(LogoGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Size = UDim2.new(1.1, 0, 1.1, 0),
-            ImageTransparency = 0.6
-        })
-        
-        tweenGrow:Play()
-        tweenGrow.Completed:Wait()
-        tweenShrink:Play()
-        tweenShrink.Completed:Wait()
-    end
-end)
-
--- Contenedor de la barra de carga con esquinas redondeadas
-
-
--- Esquinas redondeadas para el contenedor
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0.5, 0)
-UICorner.Parent = LoadingBarContainer
-
--- Borde brillante para la barra
-local BorderGlow = Instance.new("UIStroke")
-BorderGlow.Color = Color3.fromRGB(147, 112, 219)
-BorderGlow.Thickness = 1.5
-BorderGlow.Transparency = 0.5
-BorderGlow.Parent = LoadingBarContainer
-
--- Barra de carga mejorada
 local LoadingBar = Instance.new("Frame")
-LoadingBar.Size = UDim2.new(0.98, 0, 0.8, 0)
-LoadingBar.Position = UDim2.new(0.01, 0, 0.1, 0)
-LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
+LoadingBar.Position = UDim2.new(0.3, 0, 0.5, 0)
+LoadingBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoadingBar.BorderSizePixel = 0
-LoadingBar.ZIndex = 10003
-LoadingBar.Parent = LoadingBarContainer
+LoadingBar.ZIndex = 10001
+LoadingBar.Parent = LoadingFrame
 
--- Esquinas redondeadas para la barra
-local BarCorner = Instance.new("UICorner")
-BarCorner.CornerRadius = UDim.new(0.5, 0)
-BarCorner.Parent = LoadingBar
-
--- Barra de relleno con efecto visual mejorado
 local LoadingFill = Instance.new("Frame")
 LoadingFill.Size = UDim2.new(0, 0, 1, 0)
 LoadingFill.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
 LoadingFill.BorderSizePixel = 0
-LoadingFill.ZIndex = 10004
+LoadingFill.ZIndex = 10002
 LoadingFill.Parent = LoadingBar
 
--- Esquinas redondeadas para el relleno
-local FillCorner = Instance.new("UICorner")
-FillCorner.CornerRadius = UDim.new(0.5, 0)
-FillCorner.Parent = LoadingFill
-
--- Gradiente para el relleno
-local FillGradient = Instance.new("UIGradient")
-FillGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(170, 130, 240)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(147, 112, 219)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(130, 100, 200))
-})
-FillGradient.Parent = LoadingFill
-
--- Animación del gradiente del relleno
-spawn(function()
-    local offset = 0
-    while LoadingGui.Parent and LoadingFill.Size.X.Scale < 1 do
-        FillGradient.Offset = Vector2.new(offset, 0)
-        offset = offset - 0.01
-        if offset <= -1 then offset = 0 end
-        wait(0.02)
-    end
-end)
-
--- Texto de carga mejorado
 local LoadingText = Instance.new("TextLabel")
 LoadingText.Size = UDim2.new(0, 200, 0, 30)
 LoadingText.Position = UDim2.new(0.5, -100, 0.45, -15)
@@ -229,80 +133,11 @@ LoadingText.BackgroundTransparency = 1
 LoadingText.Font = Enum.Font.GothamBold
 LoadingText.Text = Texts.loading
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.TextSize = 22
-LoadingText.ZIndex = 10005
+LoadingText.TextSize = 18
+LoadingText.ZIndex = 10003
 LoadingText.Parent = LoadingFrame
 
--- Efecto de sombra para el texto
-local TextShadow = Instance.new("TextLabel")
-TextShadow.Size = LoadingText.Size
-TextShadow.Position = UDim2.new(0, 2, 0, 2) -- Desplazamiento para efecto de sombra
-TextShadow.BackgroundTransparency = 1
-TextShadow.Font = LoadingText.Font
-TextShadow.Text = LoadingText.Text
-TextShadow.TextColor3 = Color3.fromRGB(0, 0, 0)
-TextShadow.TextTransparency = 0.7
-TextShadow.TextSize = LoadingText.TextSize
-TextShadow.ZIndex = 10004
-TextShadow.Parent = LoadingText
-
--- Porcentaje de carga
-local PercentText = Instance.new("TextLabel")
-PercentText.Size = UDim2.new(0, 60, 0, 20)
-PercentText.Position = UDim2.new(0.5, -30, 0.6, 0)
-PercentText.BackgroundTransparency = 1
-PercentText.Font = Enum.Font.GothamSemibold
-PercentText.Text = "0%"
-PercentText.TextColor3 = Color3.fromRGB(255, 255, 255)
-PercentText.TextSize = 16
-PercentText.ZIndex = 10005
-PercentText.Parent = LoadingFrame
-
--- Partículas de fondo (efecto visual)
-for i = 1, 20 do
-    local Particle = Instance.new("Frame")
-    Particle.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
-    Particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    Particle.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
-    Particle.BackgroundTransparency = math.random(0.7, 0.9)
-    Particle.BorderSizePixel = 0
-    Particle.ZIndex = 10001
-    Particle.Parent = LoadingFrame
-    
-    -- Animación de las partículas
-    spawn(function()
-        while LoadingGui.Parent do
-            local randomPos = UDim2.new(math.random(), 0, math.random(), 0)
-            local randomTime = math.random(3, 8)
-            local tween = TweenService:Create(Particle, TweenInfo.new(randomTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-                Position = randomPos,
-                BackgroundTransparency = math.random(0.7, 0.9)
-            })
-            tween:Play()
-            wait(randomTime)
-        end
-    end)
-end
-
-
--- Animación de carga principal con actualizaciones de porcentaje
-local loadingDuration = 3 -- Mantiene los 3 segundos originales
-local startTime = tick()
-
--- Actualizar el porcentaje mientras carga
-spawn(function()
-    while LoadingGui.Parent do
-        local elapsed = tick() - startTime
-        local progress = math.min(elapsed / loadingDuration, 1)
-        local percent = math.floor(progress * 100)
-        PercentText.Text = percent .. "%"
-        
-        if progress >= 1 then break end
-        wait(0.03)
-    end
-end)
-
--- Animación principal de la barra de carga
+-- Animación de carga
 local loadingTween = TweenService:Create(LoadingFill, TweenInfo.new(3), {Size = UDim2.new(1, 0, 1, 0)})
 loadingTween:Play()
 loadingTween.Completed:Wait()
@@ -1365,7 +1200,7 @@ local function Chams(enabled)
         -- Evento para remover Chams cuando un jugador se va
         Players.PlayerRemoving:Connect(function(player)
             if chamsData[player] then
-                for _, cham in pairs(data) do
+                for _, cham in pairs(chamsData[player]) do
                     cham:Destroy()
                 end
                 chamsData[player] = nil
@@ -1849,9 +1684,3 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-
--- Mensaje de confirmación
-print("Script mejorado cargado correctamente. Use el botón en la izquierda para mostrar/ocultar el menú.")
-print("Ahora puede arrastrar el botón de toggle a cualquier posición, redimensionar el menú y ajustar la transparencia.")
-print("Las funciones ahora persisten después de morir y reaparecer, especialmente el HitboxExpander.")
-print("La interfaz y el botón ahora están siempre por encima de todo, incluso después de reaparecer.")
