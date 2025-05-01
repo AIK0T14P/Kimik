@@ -1412,7 +1412,6 @@ local VisualFeatures = {
 }
 
 local PlayerFeatures = {
-    {name = "Invisibility", callback = function() end},
     {name = "AntiAFK", callback = function() end},
     {name = "AutoReset", callback = function() end},
     {name = "SaveRespawn", callback = function() end},
