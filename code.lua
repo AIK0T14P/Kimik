@@ -107,9 +107,10 @@ LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local LoadingFrame = Instance.new("Frame")
 LoadingFrame.Size = UDim2.new(1, 0, 1, 0)
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-LoadingFrame.ZIndex = 10000 -- Valor muy alto para estar por encima de todo
+LoadingFrame.BackgroundTransparency = 1 -- fondo invisible
+LoadingFrame.ZIndex = 10000
 LoadingFrame.Parent = LoadingGui
+
 
 local LoadingBar = Instance.new("Frame")
 LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
