@@ -160,13 +160,7 @@ spawn(function()
 end)
 
 -- Contenedor de la barra de carga con esquinas redondeadas
-local LoadingBarContainer = Instance.new("Frame")
-LoadingBarContainer.Size = UDim2.new(0.4, 0, 0.03, 0)
-LoadingBarContainer.Position = UDim2.new(0.3, 0, 0.55, 0)
-LoadingBarContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-LoadingBarContainer.BorderSizePixel = 0
-LoadingBarContainer.ZIndex = 10002
-LoadingBarContainer.Parent = LoadingFrame
+
 
 -- Esquinas redondeadas para el contenedor
 local UICorner = Instance.new("UICorner")
