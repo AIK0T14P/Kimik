@@ -98,15 +98,6 @@ local CurrentLanguage = "Español"
 local Texts = Languages[CurrentLanguage]
 
 -- Crear pantalla de carga
-local LoadingGui = Instance.new("ScreenGui")
-LoadingGui.Name = "LoadingGui"
-LoadingGui.ResetOnSpawn = false
-LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LoadingGui.DisplayOrder = 9999 -- Asegurar que esté por encima de todo
-LoadingGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-
-
 local LoadingBar = Instance.new("Frame")
 LoadingBar.Size = UDim2.new(0.4, 0, 0.02, 0)
 LoadingBar.Position = UDim2.new(0.3, 0, 0.5, 0)
