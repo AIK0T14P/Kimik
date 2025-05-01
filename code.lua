@@ -305,19 +305,6 @@ for i = 1, 20 do
     end)
 end
 
--- Animación de puntos suspensivos en el texto de carga
-spawn(function()
-    local baseText = Texts.loading
-    local dots = {"", ".", "..", "..."}
-    local index = 1
-    
-    while LoadingGui.Parent and LoadingFill.Size.X.Scale < 1 do
-        LoadingText.Text = baseText .. dots[index]
-        TextShadow.Text = baseText .. dots[index]
-        index = index % #dots + 1
-        wait(0.3)
-    end
-end)
 
 -- Animación de carga principal con actualizaciones de porcentaje
 local loadingDuration = 3 -- Mantiene los 3 segundos originales
