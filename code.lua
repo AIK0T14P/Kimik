@@ -1393,14 +1393,12 @@ local MovementFeatures = {
     {name = "InfiniteJump", callback = InfiniteJump},
     {name = "NoClip", callback = NoClip},
     {name = "BunnyHop", callback = BunnyHop},
-    {name = "WallRun", callback = WallRun},
     {name = "Levitation", callback = Levitation}
 }
 
 local CombatFeatures = {
     {name = "AutoHeal", callback = AutoHeal},
     {name = "SpinBot", callback = SpinBot},
-    {name = "AntiAim", callback = AntiAim},
     {name = "HitboxExpander", callback = HitboxExpander}
 }
 
