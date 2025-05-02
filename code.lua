@@ -1294,6 +1294,52 @@ local function ESP(enabled)
     end
 end
 
+local function TeleportToPosition(enabled)
+    EnabledFeatures["TeleportToPosition"] = enabled
+
+    local uiFolder = CoreGui:FindFirstChild("PlayersUIFolder") or Instance.new("Folder")
+    uiFolder.Name = "PlayersUIFolder"
+    uiFolder.Parent = CoreGui
+
+    -- Limpia el contenido anterior si existe
+    for _, child in pairs(uiFolder:GetChildren()) do
+        child:Destroy()
+    end
+
+    if enabled then
+        local yOffset = 0
+        for _, player in pairs(Players:GetPlayers()) do
+            local label = Instance.new("TextLabel")
+            label.Name = "PlayerLabel"
+            label.Text = player.Name
+            label.Size = UDim2.new(0, 200, 0, 25)
+            label.Position = UDim2.new(0, 10, 0, 100 + yOffset)
+            label.BackgroundTransparency = 0.3
+            label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            label.TextColor3 = Color3.new(1, 1, 1)
+            label.Font = Enum.Font.SourceSansBold
+            label.TextSize = 18
+            label.Parent = uiFolder
+            yOffset = yOffset + 30
+        end
+
+        -- Refrescar al entrar o salir un jugador
+        Players.PlayerAdded:Connect(function()
+            if EnabledFeatures["ShowPlayersUI"] then
+                ShowPlayersUI(true)
+            end
+        end)
+
+        Players.PlayerRemoving:Connect(function()
+            if EnabledFeatures["ShowPlayersUI"] then
+                ShowPlayersUI(true)
+            end
+        end)
+    else
+        uiFolder:Destroy()
+    end
+end
+
 -- Función para Chams
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
