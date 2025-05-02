@@ -1080,10 +1080,35 @@ end
 
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
+    -- Verificar si ya existe un ESPFolder y limpiarlo si es necesario
+    local existingESPFolder = game.CoreGui:FindFirstChild("ESPFolder")
+    if existingESPFolder then
+        existingESPFolder:Destroy()
+    end
+    
+    -- Actualizar el estado en EnabledFeatures
     EnabledFeatures["ESP"] = enabled
+    
+    -- Si no está habilitado, simplemente salir de la función
+    if not enabled then
+        return
+    end
+    
+    -- Crear nuevo folder para ESP
     local ESPFolder = Instance.new("Folder")
     ESPFolder.Name = "ESPFolder"
     ESPFolder.Parent = game.CoreGui
+    
+    -- Almacenar todas las conexiones para poder desconectarlas después
+    local connections = {}
+    local espData = {}
+    
+    -- Distancia máxima para mostrar ESP (optimización)
+    local MAX_ESP_DISTANCE = 500
+    
+    -- Intervalo de actualización en segundos (0.1 = 10 veces por segundo)
+    local UPDATE_INTERVAL = 0.1
+    local lastUpdateTime = 0
     
     local function getTeamColor(player)
         if player.Team then
@@ -1095,102 +1120,197 @@ local function ESP(enabled)
     local function createESP(player)
         if player == LocalPlayer then return end
         
-        local function createBoxHighlight()
-            local highlight = Instance.new("Highlight")
-            highlight.Name = player.Name .. "Highlight"
+        -- Crear highlight para el contorno
+        local highlight = Instance.new("Highlight")
+        highlight.Name = player.Name .. "Highlight"
+        highlight.FillColor = getTeamColor(player)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Parent = ESPFolder
+        
+        -- Crear etiqueta de nombre
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Name = player.Name .. "NameTag"
+        billboardGui.Size = UDim2.new(0, 200, 0, 50)
+        billboardGui.StudsOffset = Vector3.new(0, 3, 0)
+        billboardGui.AlwaysOnTop = true
+        billboardGui.Parent = ESPFolder
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, 0, 0, 20)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = getTeamColor(player)
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.TextScaled = true
+        nameLabel.Parent = billboardGui
+        
+        -- Función para actualizar el ESP con comprobaciones de seguridad
+        local function updatePlayerESP()
+            -- Verificar si el ESP sigue habilitado
+            if not EnabledFeatures["ESP"] then
+                return
+            end
+            
+            -- Verificar si el jugador y su personaje existen
+            if not player or not player.Parent or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Enabled = false
+                billboardGui.Enabled = false
+                return
+            end
+            
+            -- Verificar si el jugador local existe
+            if not LocalPlayer or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Enabled = false
+                billboardGui.Enabled = false
+                return
+            end
+            
+            -- Calcular distancia
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            
+            -- Desactivar ESP si está demasiado lejos
+            if distance > MAX_ESP_DISTANCE then
+                highlight.Enabled = false
+                billboardGui.Enabled = false
+                return
+            end
+            
+            -- Activar y actualizar ESP
+            highlight.Enabled = true
+            billboardGui.Enabled = true
+            highlight.Parent = player.Character
+            billboardGui.Parent = player.Character.HumanoidRootPart
+            nameLabel.Text = string.format("%s\n%.0f studs", player.Name, distance)
             highlight.FillColor = getTeamColor(player)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Parent = ESPFolder
-            return highlight
-        end
-        
-        local function createNameTag()
-            local billboardGui = Instance.new("BillboardGui")
-            billboardGui.Name = player.Name .. "NameTag"
-            billboardGui.Size = UDim2.new(0, 200, 0, 50)
-            billboardGui.StudsOffset = Vector3.new(0, 3, 0)
-            billboardGui.AlwaysOnTop = true
-            billboardGui.Parent = ESPFolder
-            
-            local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.new(1, 0, 0, 20)
-            nameLabel.BackgroundTransparency = 1
             nameLabel.TextColor3 = getTeamColor(player)
-            nameLabel.TextStrokeTransparency = 0
-            nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-            nameLabel.Font = Enum.Font.SourceSansBold
-            nameLabel.TextScaled = true
-            nameLabel.Parent = billboardGui
-            
-            return billboardGui, nameLabel
         end
         
-        local highlight = createBoxHighlight()
-        local nameTag, nameLabel = createNameTag()
-        
-        local function updateESP()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                highlight.Parent = player.Character
-                nameTag.Parent = player.Character.HumanoidRootPart
-                nameLabel.Text = string.format("%s\n%.1f studs", player.Name,
-                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-                highlight.FillColor = getTeamColor(player)
-                nameLabel.TextColor3 = getTeamColor(player)
+        -- Actualizar el ESP con límite de frecuencia
+        local function throttledUpdate()
+            local currentTime = tick()
+            if currentTime - lastUpdateTime >= UPDATE_INTERVAL then
+                lastUpdateTime = currentTime
+                
+                -- Actualizar ESP para todos los jugadores
+                for _, data in pairs(espData) do
+                    if data.updateFn then
+                        data.updateFn()
+                    end
+                end
             end
         end
         
-        local connection = RunService.RenderStepped:Connect(updateESP)
-        
-        player.CharacterAdded:Connect(function(char)
-            highlight.Parent = char
-            nameTag.Parent = char:WaitForChild("HumanoidRootPart")
+        -- Conectar a CharacterAdded para mantener el ESP cuando el jugador reaparece
+        local characterAddedConnection = player.CharacterAdded:Connect(function(char)
+            if not EnabledFeatures["ESP"] then return end
+            
+            task.wait(0.5) -- Esperar a que el personaje cargue completamente
+            if char:FindFirstChild("HumanoidRootPart") then
+                highlight.Parent = char
+                billboardGui.Parent = char.HumanoidRootPart
+            end
         end)
+        
+        -- Guardar conexiones para limpiar después
+        table.insert(connections, characterAddedConnection)
         
         return {
             highlight = highlight,
-            nameTag = nameTag,
-            connection = connection
+            nameTag = billboardGui,
+            updateFn = updatePlayerESP
         }
     end
     
-    local espData = {}
-    
-    if enabled then
-        -- Crear ESP para jugadores existentes
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                espData[player] = createESP(player)
-            end
-        end
-        
-        -- Crear ESP para nuevos jugadores
-        Players.PlayerAdded:Connect(function(player)
+    -- Crear ESP para jugadores existentes
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
             espData[player] = createESP(player)
-        end)
-        
-        -- Limpiar ESP cuando los jugadores salen
-        Players.PlayerRemoving:Connect(function(player)
-            if espData[player] then
+        end
+    end
+    
+    -- Crear ESP para nuevos jugadores
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        if not EnabledFeatures["ESP"] then return end
+        espData[player] = createESP(player)
+    end)
+    
+    -- Limpiar ESP cuando los jugadores salen
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        if espData[player] then
+            if espData[player].highlight then
                 espData[player].highlight:Destroy()
-                espData[player].nameTag:Destroy()
-                espData[player].connection:Disconnect()
-                espData[player] = nil
             end
-        end)
-    else
-        -- Limpiar todo el ESP
-        for player, data in pairs(espData) do
-            data.highlight:Destroy()
-            data.nameTag:Destroy()
-            data.connection:Disconnect()
+            if espData[player].nameTag then
+                espData[player].nameTag:Destroy()
+            end
             espData[player] = nil
         end
-        ESPFolder:Destroy()
+    end)
+    
+    -- Usar Heartbeat en lugar de RenderStepped para mejor rendimiento
+    local updateConnection = RunService.Heartbeat:Connect(function()
+        if not EnabledFeatures["ESP"] then
+            -- Desconectar todo si ESP está desactivado
+            for _, connection in ipairs(connections) do
+                connection:Disconnect()
+            end
+            playerAddedConnection:Disconnect()
+            playerRemovingConnection:Disconnect()
+            updateConnection:Disconnect()
+            
+            -- Limpiar todos los elementos visuales
+            for player, data in pairs(espData) do
+                if data.highlight then
+                    data.highlight:Destroy()
+                end
+                if data.nameTag then
+                    data.nameTag:Destroy()
+                end
+            end
+            
+            -- Limpiar el folder
+            if ESPFolder and ESPFolder.Parent then
+                ESPFolder:Destroy()
+            end
+            
+            return
+        end
+        
+        -- Actualizar ESP con límite de frecuencia
+        local currentTime = tick()
+        if currentTime - lastUpdateTime >= UPDATE_INTERVAL then
+            lastUpdateTime = currentTime
+            
+            -- Actualizar ESP para todos los jugadores
+            for _, data in pairs(espData) do
+                if data.updateFn then
+                    data.updateFn()
+                end
+            end
+        end
+    end)
+    
+    -- Guardar conexiones principales
+    table.insert(connections, updateConnection)
+    table.insert(connections, playerAddedConnection)
+    table.insert(connections, playerRemovingConnection)
+    
+    -- Crear una función de limpieza que se puede llamar desde fuera
+    ESPFolder:SetAttribute("CleanupESP", true)
+    
+    -- Función para limpiar todo el ESP
+    local function cleanupESP()
+        EnabledFeatures["ESP"] = false
+        
+        -- La limpieza ocurrirá en la próxima actualización de Heartbeat
     end
+    
+    -- Exponer la función de limpieza
+    _G.CleanupESP = cleanupESP
 end
-
 -- Función para Chams
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
