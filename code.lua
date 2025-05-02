@@ -1594,7 +1594,7 @@ for _, feature in ipairs(CombatFeatures) do
     CreateToggle(feature.name, Sections.Combat, feature.callback)
 end
 
-for _, feature in ipairs(HomeFeatures) do
+for _, feature in ipairs(VisualFeatures) do
     CreateToggle(feature.name, Sections.Home, feature.callback)
 end
 
