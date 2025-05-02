@@ -1142,6 +1142,7 @@ local function ESP(enabled)
         nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
         nameLabel.Font = Enum.Font.SourceSansBold
         nameLabel.TextScaled = true
+        nameLabel.Text = player.Name -- Inicializar el texto con el nombre del jugador
         nameLabel.Parent = billboardGui
         espObject.nameLabel = nameLabel
         
@@ -1149,6 +1150,12 @@ local function ESP(enabled)
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             highlight.Parent = player.Character
             billboardGui.Parent = player.Character.HumanoidRootPart
+            
+            -- Actualizar el texto inicial con la distancia
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+            end
         end
         
         -- Conectar evento de personaje añadido
@@ -1178,8 +1185,9 @@ local function ESP(enabled)
             elseif player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
                    LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 -- Solo actualizar texto y distancia, no la posición (BillboardGui lo hace automáticamente)
-                data.nameLabel.Text = string.format("%s\n%.1f", player.Name,
-                    (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+                local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                
                 -- Actualizar color por si cambió de equipo
                 local teamColor = getTeamColor(player)
                 data.highlight.FillColor = teamColor
@@ -1212,12 +1220,12 @@ local function ESP(enabled)
     
     -- Usar un timer en lugar de RenderStepped para ahorrar recursos
     updateConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        task.wait(updateFrequency) -- Solo actualizar cada updateFrequency segundos
         if not enabled or not ESPFolder or not ESPFolder.Parent then
             -- Si se desactivó o se eliminó el folder, limpiar todo
             cleanupESP()
             return
         end
+        task.wait(updateFrequency) -- Solo actualizar cada updateFrequency segundos
         updateAllESP()
     end)
     
@@ -1256,47 +1264,11 @@ local function ESP(enabled)
     -- Exponer la función de limpieza
     getgenv().CleanupESP = cleanupESP
     
-    -- Crear un toggle para habilitar/deshabilitar
-    local ToggleUIConnection
-    
-    if not game.CoreGui:FindFirstChild("ESPToggleUI") then
-        -- Crear un botón de toggle en la interfaz
-        local toggleUI = Instance.new("ScreenGui")
-        toggleUI.Name = "ESPToggleUI"
-        toggleUI.Parent = game.CoreGui
-        
-        local toggleButton = Instance.new("TextButton")
-        toggleButton.Size = UDim2.new(0, 100, 0, 30)
-        toggleButton.Position = UDim2.new(0.05, 0, 0.05, 0)
-        toggleButton.Text = "ESP: ON"
-        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-        toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        toggleButton.Font = Enum.Font.SourceSansBold
-        toggleButton.TextSize = 14
-        toggleButton.Parent = toggleUI
-        
-        ToggleUIConnection = toggleButton.MouseButton1Click:Connect(function()
-            local status = not EnabledFeatures["ESP"]
-            if status then
-                -- Reactivar
-                ESP(true)
-                toggleButton.Text = "ESP: ON"
-                toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-            else
-                -- Desactivar
-                cleanupESP()
-                toggleButton.Text = "ESP: OFF"
-                toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-            end
-        end)
-    end
-    
     -- Si se desactiva mediante el parámetro
     if not enabled then
         cleanupESP()
     end
 end
-
 
 -- Función para Chams
 local Players = game:GetService("Players")
