@@ -1180,14 +1180,7 @@ local function ESP(enabled)
                 -- Actualizar texto y posición solo si está en pantalla
                 if onScreen then
                     nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
-
-                -- Limitar cuánto puede subir el texto en pantalla (máximo 150 píxeles arriba del punto actual)
-                local maxOffsetY = 150
-                local desiredY = vector.Y - 50
-                local clampedY = math.max(desiredY, vector.Y - maxOffsetY)
-
-                nameLabel.Position = UDim2.new(0, vector.X - 100, 0, clampedY)
-
+                    nameLabel.Position = UDim2.new(0, vector.X - 100, 0, vector.Y - 50)
                     
                     -- Limitar el tamaño del texto basado en la distancia
                     -- Tamaño mínimo: 14, tamaño máximo: 18, disminuye con la distancia
