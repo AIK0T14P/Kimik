@@ -1037,48 +1037,45 @@ local function Levitation(enabled)
     end
 end
 
-local function SaveRespawn(enabled)
-    if enabled then
-        EnabledFeatures["SaveRespawn"] = true
-        RespawnPoint = HumanoidRootPart.Position
+local function SaveRespawn()
+    EnabledFeatures["SaveRespawn"] = true
+    RespawnPoint = HumanoidRootPart.Position
 
-        -- Notificación visual
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "RespawnNotification"
-        gui.ResetOnSpawn = false
-        gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    -- Notificación visual
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "RespawnNotification"
+    gui.ResetOnSpawn = false
+    gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0, 300, 0, 50)
-        label.Position = UDim2.new(0.5, -150, 0.8, 0)
-        label.BackgroundTransparency = 0.3
-        label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 18
-        label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
-        label.Parent = gui
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 300, 0, 50)
+    label.Position = UDim2.new(0.5, -150, 0.8, 0)
+    label.BackgroundTransparency = 0.3
+    label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 18
+    label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
+    label.Parent = gui
 
-        task.delay(3, function() gui:Destroy() end)
+    task.delay(3, function() gui:Destroy() end)
 
-        -- Mantener el bucle de teleport en cada respawn
-        task.spawn(function()
-            while EnabledFeatures["SaveRespawn"] and RespawnPoint do
-                local char = Players.LocalPlayer.Character
-                local humanoid = char and char:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid.Died:Wait()
-                    local newChar = Players.LocalPlayer.CharacterAdded:Wait()
-                    local newRoot = newChar:WaitForChild("HumanoidRootPart")
-                    task.wait(0.3)
-                    newRoot.CFrame = CFrame.new(RespawnPoint)
-                end
-                task.wait(1)
+    -- Mantener el bucle de teleport en cada respawn
+    task.spawn(function()
+        while EnabledFeatures["SaveRespawn"] and RespawnPoint do
+            local char = Players.LocalPlayer.Character
+            local humanoid = char and char:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.Died:Wait()
+                local newChar = Players.LocalPlayer.CharacterAdded:Wait()
+                local newRoot = newChar:WaitForChild("HumanoidRootPart")
+                task.wait(0.3)
+                newRoot.CFrame = CFrame.new(RespawnPoint)
             end
-        end)
-    end
+            task.wait(1)
+        end
+    end)
 end
-
 
 
 -- Implementación mejorada del ESP con colores de equipo
@@ -1631,7 +1628,11 @@ for _, feature in ipairs(VisualFeatures) do
 end
 
 for _, feature in ipairs(PlayerFeatures) do
-    CreateToggle(feature.name, Sections.Player, feature.callback)
+    if feature.isButton then
+        CreateButton(feature.name, Sections.Player, feature.callback)
+    else
+        CreateToggle(feature.name, Sections.Player, feature.callback)
+    end
 end
 
 for _, feature in ipairs(WorldFeatures) do
