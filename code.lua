@@ -43,7 +43,6 @@ local EnabledFeatures = {}
 local Languages = {
     ["Español"] = {
         categories = {
-            Home = "Home",
             Movement = "Movimiento",
             Combat = "Combate",
             Visuals = "Visuales",
@@ -1295,8 +1294,7 @@ local function Tracers(enabled)
                     local torsoScreenPos, onScreen = Camera:WorldToViewportPoint(torsoPosition)
                     
                     if onScreen then
-                        -- Lo importante aquí es usar WorldToViewportPoint en lugar de WorldToScreenPoint
-                        -- y usar los valores X e Y directamente como Vector2
+
                         tracer.From = bottomScreenPos
                         tracer.To = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
                         tracer.Visible = true
@@ -1414,7 +1412,6 @@ end
 
 -- Categorías actualizadas
 local Categories = {
-    {name = "Home", icon = "rbxassetid://3926307971"},
     {name = "Movement", icon = "rbxassetid://3926307971"},
     {name = "Combat", icon = "rbxassetid://3926307971"},
     {name = "Visuals", icon = "rbxassetid://3926307971"},
@@ -1592,10 +1589,6 @@ end
 
 for _, feature in ipairs(CombatFeatures) do
     CreateToggle(feature.name, Sections.Combat, feature.callback)
-end
-
-for _, feature in ipairs(VisualFeatures) do
-    CreateToggle(feature.name, Sections.Home, feature.callback)
 end
 
 for _, feature in ipairs(VisualFeatures) do
