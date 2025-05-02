@@ -474,6 +474,35 @@ local function CreateSection(name)
     return Section
 end
 
+-- Función para crear botones completos
+local function CreateButton(name, section, callback)
+    local ButtonFrame = Instance.new("Frame")
+    ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
+    ButtonFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ButtonFrame.Parent = section
+    ButtonFrame.ZIndex = 9006
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = ButtonFrame
+    
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, 0, 1, 0)
+    Button.BackgroundTransparency = 1
+    Button.Font = Enum.Font.GothamSemibold
+    Button.Text = Texts.features[name]
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextSize = 14
+    Button.Parent = ButtonFrame
+    Button.ZIndex = 9007
+    
+    Button.MouseButton1Click:Connect(function()
+        callback()
+    end)
+    
+    return Button
+end
+
 -- Función mejorada para crear botones de toggle
 local function CreateToggle(name, section, callback)
     local ToggleFrame = Instance.new("Frame")
@@ -1458,10 +1487,8 @@ local VisualFeatures = {
 local PlayerFeatures = {
     {name = "AntiAFK", callback = function() end},
     {name = "AutoReset", callback = function() end},
-    {name = "SaveRespawn", callback = function()
-        SaveRespawn(true)
-    end},
-    {name = "DeleteRespawn", callback = function() DeleteRespawn() end},
+    {name = "SaveRespawn", callback = function() SaveRespawn(true) end, isButton = true},
+    {name = "DeleteRespawn", callback = function() DeleteRespawn() end, isButton = true},
     {name = "SavePosition", callback = function() end},
     {name = "TeleportToPosition", callback = function() end},
 }
@@ -1577,6 +1604,14 @@ local SettingsFeatures = {
     end},
     {name = "UITransparency", callback = UITransparency, slider = true, min = 0, max = 90, default = 10}
 }
+
+for _, feature in ipairs(PlayerFeatures) do
+    if feature.isButton then
+        CreateButton(feature.name, Sections.Player, feature.callback)
+    else
+        CreateToggle(feature.name, Sections.Player, feature.callback)
+    end
+end
 
 -- Crear toggles y sliders para cada característica
 for _, feature in ipairs(MovementFeatures) do
