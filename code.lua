@@ -1602,14 +1602,6 @@ local SettingsFeatures = {
     {name = "UITransparency", callback = UITransparency, slider = true, min = 0, max = 90, default = 10}
 }
 
-for _, feature in ipairs(PlayerFeatures) do
-    if feature.isButton then
-        CreateButton(feature.name, Sections.Player, feature.callback)
-    else
-        CreateToggle(feature.name, Sections.Player, feature.callback)
-    end
-end
-
 -- Crear toggles y sliders para cada característica
 for _, feature in ipairs(MovementFeatures) do
     if feature.slider then
