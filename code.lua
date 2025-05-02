@@ -1131,6 +1131,12 @@ local function ESP(enabled)
         billboardGui.Size = UDim2.new(0, 200, 0, 50)
         billboardGui.StudsOffset = Vector3.new(0, 3, 0)
         billboardGui.AlwaysOnTop = true
+        
+        -- Configurar para que siempre sea visible sin importar la distancia
+        billboardGui.MaxDistance = math.huge
+        billboardGui.SizeOffset = Vector2.new(0, 0)
+        billboardGui.LightInfluence = 0
+        billboardGui.Adornee = nil  -- Se configurará después
         billboardGui.Parent = ESPFolder
         espObject.nameTag = billboardGui
         
@@ -1142,6 +1148,7 @@ local function ESP(enabled)
         nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
         nameLabel.Font = Enum.Font.SourceSansBold
         nameLabel.TextScaled = true
+        nameLabel.TextSize = 14
         nameLabel.Text = player.Name -- Inicializar el texto con el nombre del jugador
         nameLabel.Parent = billboardGui
         espObject.nameLabel = nameLabel
@@ -1149,7 +1156,8 @@ local function ESP(enabled)
         -- Añadir al personaje si existe
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             highlight.Parent = player.Character
-            billboardGui.Parent = player.Character.HumanoidRootPart
+            billboardGui.Adornee = player.Character.HumanoidRootPart
+            billboardGui.Parent = ESPFolder
             
             -- Actualizar el texto inicial con la distancia
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -1163,7 +1171,13 @@ local function ESP(enabled)
             local hrp = char:WaitForChild("HumanoidRootPart", 5)
             if hrp then
                 highlight.Parent = char
-                billboardGui.Parent = hrp
+                billboardGui.Adornee = hrp
+                
+                -- Actualizar inmediatamente el texto con la distancia
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local distance = (hrp.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
+                end
             end
         end)
         
@@ -1184,6 +1198,12 @@ local function ESP(enabled)
                 end
             elseif player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
                    LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                   
+                -- Asegurar que el nametag esté conectado al HumanoidRootPart
+                if data.nameTag and player.Character:FindFirstChild("HumanoidRootPart") then
+                    data.nameTag.Adornee = player.Character.HumanoidRootPart
+                end
+                
                 -- Solo actualizar texto y distancia, no la posición (BillboardGui lo hace automáticamente)
                 local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                 data.nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
