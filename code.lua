@@ -1181,6 +1181,12 @@ local function ESP(enabled)
                 if onScreen then
                     nameLabel.Text = string.format("%s\n%.1f studs", player.Name, distance)
                     nameLabel.Position = UDim2.new(0, vector.X - 100, 0, vector.Y - 50)
+                    
+                    -- Limitar el tamaño del texto basado en la distancia
+                    -- Tamaño mínimo: 14, tamaño máximo: 18, disminuye con la distancia
+                    local textSize = math.clamp(18 - (distance / 100), 14, 18)
+                    nameLabel.TextSize = textSize
+                    
                     nameLabel.Visible = true
                 else
                     nameLabel.Visible = false
