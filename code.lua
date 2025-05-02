@@ -566,53 +566,6 @@ local function CreateToggle(name, section, callback)
     }
 end
 
--- Función para crear botones completos
-local function CreateButton(name, section, callback)
-    local ButtonFrame = Instance.new("Frame")
-    ButtonFrame.Size = UDim2.new(1, 0, 0, 40)
-    ButtonFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    ButtonFrame.Parent = section
-    ButtonFrame.ZIndex = 9006
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = ButtonFrame
-    
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, 0, 1, 0)
-    Button.BackgroundTransparency = 1
-    Button.Font = Enum.Font.GothamSemibold
-    Button.Text = Texts.features[name]
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 14
-    Button.Parent = ButtonFrame
-    Button.ZIndex = 9007
-    
-    -- Efecto hover
-    Button.MouseEnter:Connect(function()
-        TweenService:Create(ButtonFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
-    end)
-    
-    Button.MouseLeave:Connect(function()
-        TweenService:Create(ButtonFrame, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
-    end)
-    
-    -- Efecto de clic
-    Button.MouseButton1Down:Connect(function()
-        TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(147, 112, 219)}):Play()
-    end)
-    
-    Button.MouseButton1Up:Connect(function()
-        TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
-    end)
-    
-    Button.MouseButton1Click:Connect(function()
-        callback()
-    end)
-    
-    return Button
-end
-
 -- Función mejorada para crear sliders
 local function CreateSlider(name, section, callback, min, max, default)
     local SliderFrame = Instance.new("Frame")
@@ -1055,45 +1008,49 @@ local function Levitation(enabled)
     end
 end
 
-local function SaveRespawn()
-    EnabledFeatures["SaveRespawn"] = true
-    RespawnPoint = HumanoidRootPart.Position
+local function SaveRespawn(enabled)
+    if enabled then
+        EnabledFeatures["SaveRespawn"] = true
+        RespawnPoint = HumanoidRootPart.Position
 
-    -- Notificación visual
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "RespawnNotification"
-    gui.ResetOnSpawn = false
-    gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+        -- Notificación visual
+        local gui = Instance.new("ScreenGui")
+        gui.Name = "RespawnNotification"
+        gui.ResetOnSpawn = false
+        gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 300, 0, 50)
-    label.Position = UDim2.new(0.5, -150, 0.8, 0)
-    label.BackgroundTransparency = 0.3
-    label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 18
-    label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
-    label.Parent = gui
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0, 300, 0, 50)
+        label.Position = UDim2.new(0.5, -150, 0.8, 0)
+        label.BackgroundTransparency = 0.3
+        label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 18
+        label.Text = string.format("📌 Posición guardada: (%.1f, %.1f, %.1f)", RespawnPoint.X, RespawnPoint.Y, RespawnPoint.Z)
+        label.Parent = gui
 
-    task.delay(3, function() gui:Destroy() end)
+        task.delay(3, function() gui:Destroy() end)
 
-    -- Mantener el bucle de teleport en cada respawn
-    task.spawn(function()
-        while EnabledFeatures["SaveRespawn"] and RespawnPoint do
-            local char = Players.LocalPlayer.Character
-            local humanoid = char and char:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.Died:Wait()
-                local newChar = Players.LocalPlayer.CharacterAdded:Wait()
-                local newRoot = newChar:WaitForChild("HumanoidRootPart")
-                task.wait(0.3)
-                newRoot.CFrame = CFrame.new(RespawnPoint)
+        -- Mantener el bucle de teleport en cada respawn
+        task.spawn(function()
+            while EnabledFeatures["SaveRespawn"] and RespawnPoint do
+                local char = Players.LocalPlayer.Character
+                local humanoid = char and char:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Died:Wait()
+                    local newChar = Players.LocalPlayer.CharacterAdded:Wait()
+                    local newRoot = newChar:WaitForChild("HumanoidRootPart")
+                    task.wait(0.3)
+                    newRoot.CFrame = CFrame.new(RespawnPoint)
+                end
+                task.wait(1)
             end
-            task.wait(1)
-        end
-    end)
+        end)
+    end
 end
+
+
 
 -- Implementación mejorada del ESP con colores de equipo
 local function ESP(enabled)
@@ -1209,6 +1166,10 @@ local function ESP(enabled)
 end
 
 -- Función para Chams
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
 local function Chams(enabled)
     EnabledFeatures["Chams"] = enabled
 
@@ -1333,6 +1294,7 @@ local function Tracers(enabled)
                     local torsoScreenPos, onScreen = Camera:WorldToViewportPoint(torsoPosition)
                     
                     if onScreen then
+
                         tracer.From = bottomScreenPos
                         tracer.To = Vector2.new(torsoScreenPos.X, torsoScreenPos.Y)
                         tracer.Visible = true
@@ -1425,11 +1387,6 @@ local function Fullbright(enabled)
 end
 
 -- Función mejorada para controlar la transparencia de la interfaz
-local function127,127)
-    end
-end
-
--- Función mejorada para controlar la transparencia de la interfaz
 local function UITransparency(value)
     -- Convertir el valor (0-100) a transparencia (0-1)
     local transparency = value / 100
@@ -1441,6 +1398,7 @@ local function UITransparency(value)
     
     -- Mantener el borde principal visible (no transparente)
     MainBorder.BackgroundTransparency = transparency
+    
     
     -- Aplicar a todos los elementos dentro de las secciones
     for _, section in pairs(Sections) do
@@ -1500,8 +1458,10 @@ local VisualFeatures = {
 local PlayerFeatures = {
     {name = "AntiAFK", callback = function() end},
     {name = "AutoReset", callback = function() end},
-    {name = "SaveRespawn", callback = function() SaveRespawn() end, isButton = true},
-    {name = "DeleteRespawn", callback = function() DeleteRespawn() end, isButton = true},
+    {name = "SaveRespawn", callback = function()
+        SaveRespawn(true)
+    end},
+    {name = "DeleteRespawn", callback = function() DeleteRespawn() end},
     {name = "SavePosition", callback = function() end},
     {name = "TeleportToPosition", callback = function() end},
 }
@@ -1636,11 +1596,7 @@ for _, feature in ipairs(VisualFeatures) do
 end
 
 for _, feature in ipairs(PlayerFeatures) do
-    if feature.isButton then
-        CreateButton(feature.name, Sections.Player, feature.callback)
-    else
-        CreateToggle(feature.name, Sections.Player, feature.callback)
-    end
+    CreateToggle(feature.name, Sections.Player, feature.callback)
 end
 
 for _, feature in ipairs(WorldFeatures) do
@@ -1734,7 +1690,6 @@ local function SetupRespawnPersistence()
                 elseif feature == "SpinBot" then
                     SpinBot(true)
                 elseif feature == "HitboxExpander" then
-                    HitboxExpander(true)
                 elseif feature == "ESP" then
                     ESP(true)
                 elseif feature == "Chams" then
