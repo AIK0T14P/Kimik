@@ -30,6 +30,14 @@ local Resizing = false
 local ResizeStart = nil
 local StartSize = nil
 
+-- Variables para el modo pegajoso
+local selectedPlayer = nil
+local currentMode = nil
+local followConn = nil
+local distance = 2
+local esquivarSpeed = 4
+local maxTeleportDistance = 30
+
 EnabledFeatures = EnabledFeatures or {}
 
 -- Variables para guardado de posiciones
@@ -38,14 +46,8 @@ local RespawnPoint
 local HumanoidRootPart = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
 HumanoidRootPart = HumanoidRootPart:WaitForChild("HumanoidRootPart")
 
--- Variables para el modo pegajoso
-local selectedPlayer = nil
-local currentMode = nil
-local followConn = nil
-local distance = 2
-local esquivarSpeed = 4
-local maxTeleportDistance = 30 -- Distancia máxima para teleportación segura
-local verticalOffset = 1 -- Offset vertical para mantener la misma altura
+-- Tabla para almacenar el estado de las funciones
+local EnabledFeatures = {}
 
 -- Sistema de idiomas (ahora por defecto en español)
 local Languages = {
@@ -59,7 +61,7 @@ local Languages = {
             Optimization = "Optimización",
             Misc = "Varios",
             Settings = "Ajustes",
-            Pegajoso = "Modo Pegajoso" -- Nueva categoría
+            Sticky = "Modo Pegajoso" -- Nueva categoría
         },
         features = {
             Speed = "Velocidad",
@@ -98,13 +100,14 @@ local Languages = {
             HitboxExpander = "Expandir Hitbox",
             UITransparency = "Transparencia de Interfaz",
             -- Características del modo pegajoso
-            PegajosoLibre = "Modo: Libre",
-            PegajosoFijar = "Modo: Fijar",
-            PegajosoEsquivar = "Modo: Esquivar",
-            PegajosoDistancia = "Distancia",
-            PegajosoVelocidad = "Velocidad",
-            PegajosoEmergencia = "Emergencia - Volver",
-            PegajosoSeleccionar = "Seleccionar Jugador"
+            StickyMode = "Modo Pegajoso",
+            FreeMode = "Modo Libre",
+            FixedMode = "Modo Fijar",
+            DodgeMode = "Modo Esquivar",
+            StickyDistance = "Distancia",
+            StickySpeed = "Velocidad",
+            EmergencyReturn = "Emergencia - Volver",
+            SelectPlayer = "Seleccionar Jugador"
         },
         loading = "Cargando..."
     },
@@ -738,110 +741,6 @@ local function DeleteRespawn()
     label.Parent = gui
 
     task.delay(3, function() gui:Destroy() end)
-end
-
--- Funciones del modo pegajoso
-local function stopFollowing()
-    if followConn then followConn:Disconnect() end
-    followConn = nil
-end
-
-local function freezeAnimations()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    for _, track in pairs(hum:GetPlayingAnimationTracks()) do
-        track:Stop()
-    end
-    local animator = hum:FindFirstChildOfClass("Animator")
-    if animator then
-        animator:Destroy()
-    end
-end
-
-local function isPositionSafe(position, targetPosition)
-    -- Verificar si la posición está demasiado lejos
-    local distance = (position - targetPosition).Magnitude
-    return distance < maxTeleportDistance
-end
-
-local function setMode(mode)
-    currentMode = mode
-    
-    -- Actualizar botones de modo en la interfaz
-    for _, btn in pairs(modeButtons or {}) do
-        if btn.Text == "Modo: " .. mode then
-            btn.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
-        else
-            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        end
-    end
-    
-    stopFollowing()
-
-    if not selectedPlayer then return end
-    freezeAnimations()
-
-    local t = 0
-    local lastValidPosition = nil
-    
-    followConn = RunService.Heartbeat:Connect(function(dt)
-        t = t + dt
-        local char = LocalPlayer.Character
-        local targetChar = selectedPlayer.Character
-        
-        if not (char and targetChar) then return end
-        
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
-        
-        if not (hrp and targetHRP and targetHum) then return end
-        
-        -- Obtener la posición detrás del objetivo
-        local targetHeight = targetHRP.Position.Y
-        local myHeight = hrp.Position.Y
-        local heightDifference = targetHeight - myHeight
-        
-        -- Mantener la misma altura relativa que el objetivo
-        local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distance
-        
-        -- Ajustar la altura para mantener la misma posición vertical relativa
-        -- Usar la altura del objetivo + un pequeño offset para estar ligeramente por encima del suelo
-        behindPos = Vector3.new(behindPos.X, targetHeight, behindPos.Z)
-        
-        -- Verificar si la posición es segura
-        if not isPositionSafe(behindPos, hrp.Position) and lastValidPosition then
-            behindPos = lastValidPosition
-        else
-            lastValidPosition = behindPos
-        end
-        
-        local newPosition = hrp.Position
-        
-        if currentMode == "Libre" then
-            newPosition = hrp.Position:Lerp(behindPos, 0.2)
-            hrp.CFrame = CFrame.new(newPosition)
-        elseif currentMode == "Fijar" then
-            newPosition = hrp.Position:Lerp(behindPos, 0.2)
-            local cf = CFrame.lookAt(newPosition, targetHRP.Position)
-            hrp.CFrame = cf
-        elseif currentMode == "Esquivar" then
-            local offset = math.sin(t * esquivarSpeed) * 0.8
-            local sideOffset = targetHRP.CFrame.RightVector * offset
-            local pos = behindPos + sideOffset
-            newPosition = hrp.Position:Lerp(pos, 0.15)
-            local cf = CFrame.lookAt(newPosition, targetHRP.Position)
-            hrp.CFrame = cf
-        end
-        
-        -- Verificar si nos hemos alejado demasiado
-        if (hrp.Position - targetHRP.Position).Magnitude > maxTeleportDistance * 1.5 then
-            -- Teleportar de vuelta a una posición segura
-            hrp.CFrame = CFrame.new(targetHRP.Position - targetHRP.CFrame.LookVector * distance)
-        end
-    end)
 end
 
 local function InfiniteJump(enabled)
@@ -1551,6 +1450,11 @@ local function Chams(enabled)
             end
         end
         chamsData = {}
+        Ch  do
+                cham:Destroy()
+            end
+        end
+        chamsData = {}
         ChamsFolder:Destroy()
     end
 end
@@ -1700,7 +1604,109 @@ local function UITransparency(value)
     end
 end
 
--- Categorías actualizadas (añadiendo Modo Pegajoso)
+-- Funciones para el modo pegajoso
+local function stopFollowing()
+    if followConn then followConn:Disconnect() end
+    followConn = nil
+end
+
+local function freezeAnimations()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+        track:Stop()
+    end
+    local animator = hum:FindFirstChildOfClass("Animator")
+    if animator then
+        animator:Destroy()
+    end
+end
+
+local function isPositionSafe(position, targetPosition)
+    local distance = (position - targetPosition).Magnitude
+    return distance < maxTeleportDistance
+end
+
+local function setMode(mode)
+    currentMode = mode
+    
+    -- Actualizar botones de modo en la interfaz
+    for _, btn in pairs(modeButtons) do
+        if btn.Text:find(mode) then
+            btn.BackgroundColor3 = Color3.fromRGB(147, 112, 219)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        end
+    end
+    
+    stopFollowing()
+
+    if not selectedPlayer then return end
+    freezeAnimations()
+
+    local t = 0
+    local lastValidPosition = nil
+    
+    followConn = RunService.Heartbeat:Connect(function(dt)
+        t = t + dt
+        local char = LocalPlayer.Character
+        local targetChar = selectedPlayer.Character
+        
+        if not (char and targetChar) then return end
+        
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+        local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+        
+        if not (hrp and targetHRP and targetHum) then return end
+        
+        -- Obtener la posición detrás del objetivo
+        local targetHeight = targetHRP.Position.Y
+        local myHeight = hrp.Position.Y
+        local heightDifference = targetHeight - myHeight
+        
+        -- Mantener la misma altura relativa que el objetivo
+        local behindPos = targetHRP.Position - targetHRP.CFrame.LookVector * distance
+        
+        -- Ajustar la altura para mantener la misma posición vertical relativa
+        behindPos = Vector3.new(behindPos.X, targetHeight, behindPos.Z)
+        
+        -- Verificar si la posición es segura
+        if not isPositionSafe(behindPos, hrp.Position) and lastValidPosition then
+            behindPos = lastValidPosition
+        else
+            lastValidPosition = behindPos
+        end
+        
+        local newPosition = hrp.Position
+        
+        if currentMode == "Libre" then
+            newPosition = hrp.Position:Lerp(behindPos, 0.2)
+            hrp.CFrame = CFrame.new(newPosition)
+        elseif currentMode == "Fijar" then
+            newPosition = hrp.Position:Lerp(behindPos, 0.2)
+            local cf = CFrame.lookAt(newPosition, targetHRP.Position)
+            hrp.CFrame = cf
+        elseif currentMode == "Esquivar" then
+            local offset = math.sin(t * esquivarSpeed) * 0.8
+            local sideOffset = targetHRP.CFrame.RightVector * offset
+            local pos = behindPos + sideOffset
+            newPosition = hrp.Position:Lerp(pos, 0.15)
+            local cf = CFrame.lookAt(newPosition, targetHRP.Position)
+            hrp.CFrame = cf
+        end
+        
+        -- Verificar si nos hemos alejado demasiado
+        if (hrp.Position - targetHRP.Position).Magnitude > maxTeleportDistance * 1.5 then
+            -- Teleportar de vuelta a una posición segura
+            hrp.CFrame = CFrame.new(targetHRP.Position - targetHRP.CFrame.LookVector * distance)
+        end
+    end)
+end
+
+-- Categorías actualizadas (añadiendo Sticky)
 local Categories = {
     {name = "Movement", icon = "rbxassetid://3926307971"},
     {name = "Combat", icon = "rbxassetid://3926307971"},
@@ -1710,12 +1716,13 @@ local Categories = {
     {name = "Optimization", icon = "rbxassetid://3926307971"},
     {name = "Misc", icon = "rbxassetid://3926307971"},
     {name = "Settings", icon = "rbxassetid://3926307971"},
-    {name = "Pegajoso", icon = "rbxassetid://3926307971"} -- Nueva categoría
+    {name = "Sticky", icon = "rbxassetid://3926307971"} -- Nueva categoría para el modo pegajoso
 }
 
 -- Crear categorías y secciones
 local Sections = {}
 local ActiveCategory = nil
+local modeButtons = {}
 
 for i, category in ipairs(Categories) do
     local button = CreateCategory(category.name, category.icon, (i-1) * 50)
@@ -1867,16 +1874,20 @@ local SettingsFeatures = {
     {name = "UITransparency", callback = UITransparency, slider = true, min = 0, max = 90, default = 10}
 }
 
--- Características del Modo Pegajoso
-local PegajosoFeatures = {
-    {name = "PegajosoLibre", callback = function() setMode("Libre") end, isButton = true},
-    {name = "PegajosoFijar", callback = function() setMode("Fijar") end, isButton = true},
-    {name = "PegajosoEsquivar", callback = function() setMode("Esquivar") end, isButton = true},
-    {name = "PegajosoDistancia", callback = function(value) distance = value end, slider = true, min = 1, max = 10, default = 2},
-    {name = "PegajosoVelocidad", callback = function(value) esquivarSpeed = value end, slider = true, min = 1, max = 10, default = 4},
-    {name = "PegajosoEmergencia", callback = function() 
+-- Características del modo pegajoso
+local StickyFeatures = {
+    {name = "FreeMode", callback = function() setMode("Libre") end, isButton = true},
+    {name = "FixedMode", callback = function() setMode("Fijar") end, isButton = true},
+    {name = "DodgeMode", callback = function() setMode("Esquivar") end, isButton = true},
+    {name = "StickyDistance", callback = function(value) distance = value end, slider = true, min = 1, max = 10, default = 2},
+    {name = "StickySpeed", callback = function(value) esquivarSpeed = value end, slider = true, min = 1, max = 10, default = 4},
+    {name = "EmergencyReturn", callback = function() 
         stopFollowing()
         currentMode = nil
+        for _, btn in pairs(modeButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        end
+        
         -- Intentar volver a una posición segura
         local char = LocalPlayer.Character
         if char and selectedPlayer and selectedPlayer.Character then
@@ -1934,14 +1945,17 @@ for _, feature in ipairs(SettingsFeatures) do
     end
 end
 
--- Crear características del Modo Pegajoso
-for _, feature in ipairs(PegajosoFeatures) do
+-- Crear elementos para el modo pegajoso
+for _, feature in ipairs(StickyFeatures) do
     if feature.isButton then
-        CreateButton(feature.name, Sections.Pegajoso, feature.callback)
+        local btn = CreateButton(feature.name, Sections.Sticky, feature.callback)
+        if feature.name == "FreeMode" or feature.name == "FixedMode" or feature.name == "DodgeMode" then
+            table.insert(modeButtons, btn)
+        end
     elseif feature.slider then
-        CreateSlider(feature.name, Sections.Pegajoso, feature.callback, feature.min, feature.max, feature.default)
+        CreateSlider(feature.name, Sections.Sticky, feature.callback, feature.min, feature.max, feature.default)
     else
-        CreateToggle(feature.name, Sections.Pegajoso, feature.callback)
+        CreateToggle(feature.name, Sections.Sticky, feature.callback)
     end
 end
 
@@ -1949,67 +1963,69 @@ end
 local PlayerListFrame = Instance.new("Frame")
 PlayerListFrame.Size = UDim2.new(1, 0, 0, 200)
 PlayerListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-PlayerListFrame.Parent = Sections.Pegajoso
+PlayerListFrame.BorderSizePixel = 0
+PlayerListFrame.Parent = Sections.Sticky
 PlayerListFrame.ZIndex = 9006
 
 local PlayerListCorner = Instance.new("UICorner")
 PlayerListCorner.CornerRadius = UDim.new(0, 6)
 PlayerListCorner.Parent = PlayerListFrame
 
-local PlayerListLabel = Instance.new("TextLabel")
-PlayerListLabel.Size = UDim2.new(1, 0, 0, 30)
-PlayerListLabel.BackgroundTransparency = 1
-PlayerListLabel.Font = Enum.Font.GothamSemibold
-PlayerListLabel.Text = "Seleccionar Jugador"
-PlayerListLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayerListLabel.TextSize = 14
-PlayerListLabel.Parent = PlayerListFrame
-PlayerListLabel.ZIndex = 9007
+local PlayerListTitle = Instance.new("TextLabel")
+PlayerListTitle.Size = UDim2.new(1, 0, 0, 30)
+PlayerListTitle.Position = UDim2.new(0, 0, 0, 0)
+PlayerListTitle.BackgroundTransparency = 1
+PlayerListTitle.Font = Enum.Font.GothamSemibold
+PlayerListTitle.Text = Texts.features["SelectPlayer"]
+PlayerListTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerListTitle.TextSize = 14
+PlayerListTitle.Parent = PlayerListFrame
+PlayerListTitle.ZIndex = 9007
 
-local PlayerScrollFrame = Instance.new("ScrollingFrame")
-PlayerScrollFrame.Size = UDim2.new(1, -20, 0, 160)
-PlayerScrollFrame.Position = UDim2.new(0, 10, 0, 35)
-PlayerScrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-PlayerScrollFrame.BorderSizePixel = 0
-PlayerScrollFrame.ScrollBarThickness = 4
-PlayerScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
-PlayerScrollFrame.Parent = PlayerListFrame
-PlayerScrollFrame.ZIndex = 9007
+local PlayerListScroll = Instance.new("ScrollingFrame")
+PlayerListScroll.Size = UDim2.new(1, -20, 0, 160)
+PlayerListScroll.Position = UDim2.new(0, 10, 0, 30)
+PlayerListScroll.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PlayerListScroll.BorderSizePixel = 0
+PlayerListScroll.ScrollBarThickness = 4
+PlayerListScroll.ScrollBarImageColor3 = Color3.fromRGB(147, 112, 219)
+PlayerListScroll.Parent = PlayerListFrame
+PlayerListScroll.ZIndex = 9007
 
 local PlayerListLayout = Instance.new("UIListLayout")
 PlayerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 PlayerListLayout.Padding = UDim.new(0, 5)
-PlayerListLayout.Parent = PlayerScrollFrame
+PlayerListLayout.Parent = PlayerListScroll
 
 -- Función para actualizar la lista de jugadores
 local function refreshPlayerList()
     -- Limpiar lista actual
-    for _, child in pairs(PlayerScrollFrame:GetChildren()) do
+    for _, child in pairs(PlayerListScroll:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
         end
     end
     
     -- Añadir jugadores actuales
-    local yPos = 0
+    local y = 0
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            local playerButton = Instance.new("TextButton")
-            playerButton.Size = UDim2.new(1, -10, 0, 30)
-            playerButton.Position = UDim2.new(0, 5, 0, yPos)
-            playerButton.BackgroundColor3 = (selectedPlayer == player) and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(50, 50, 50)
-            playerButton.Text = player.Name
-            playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            playerButton.Font = Enum.Font.GothamSemibold
-            playerButton.TextSize = 14
-            playerButton.Parent = PlayerScrollFrame
-            playerButton.ZIndex = 9008
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Position = UDim2.new(0, 5, 0, y)
+            btn.Text = player.Name
+            btn.BackgroundColor3 = (selectedPlayer == player) and Color3.fromRGB(147, 112, 219) or Color3.fromRGB(60, 60, 60)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.GothamSemibold
+            btn.TextSize = 14
+            btn.Parent = PlayerListScroll
+            btn.ZIndex = 9008
             
-            local PlayerButtonCorner = Instance.new("UICorner")
-            PlayerButtonCorner.CornerRadius = UDim.new(0, 4)
-            PlayerButtonCorner.Parent = playerButton
+            local btnCorner = Instance.new("UICorner")
+            btnCorner.CornerRadius = UDim.new(0, 6)
+            btnCorner.Parent = btn
             
-            playerButton.MouseButton1Click:Connect(function()
+            btn.MouseButton1Click:Connect(function()
                 selectedPlayer = player
                 refreshPlayerList() -- Actualizar selección visual
                 
@@ -2019,12 +2035,12 @@ local function refreshPlayerList()
                 end
             end)
             
-            yPos = yPos + 35
+            y = y + 35
         end
     end
     
     -- Actualizar tamaño del contenido
-    PlayerScrollFrame.CanvasSize = UDim2.new(0, 0, 0, yPos)
+    PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, y)
 end
 
 -- Actualizar lista de jugadores cuando cambian
@@ -2039,9 +2055,6 @@ end)
 
 -- Inicializar lista de jugadores
 refreshPlayerList()
-
--- Variables para los botones de modo
-modeButtons = {}
 
 -- Manejar la visibilidad de las secciones y mantener el color morado
 local function ShowSection(sectionName)
@@ -2130,6 +2143,7 @@ local function SetupRespawnPersistence()
         
         -- Reactivar modo pegajoso si estaba activo
         if currentMode and selectedPlayer then
+            task.wait(0.5) -- Esperar a que el personaje esté completamente cargado
             setMode(currentMode)
         end
     end)
@@ -2161,3 +2175,15 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+-- Verificar si el jugador seleccionado sigue en el juego
+RunService.Heartbeat:Connect(function()
+    if selectedPlayer and not Players:FindFirstChild(selectedPlayer.Name) then
+        stopFollowing()
+        selectedPlayer = nil
+        refreshPlayerList()
+    end
+end)
+
+-- Mensaje de éxito en la consola
+print("Kimiko HUD Beta con Modo Pegajoso cargado correctamente")
