@@ -1,5 +1,5 @@
 -- Services
-lcal Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -43,7 +43,7 @@ HumanoidRootPart = HumanoidRootPart:WaitForChild("HumanoidRootPart")
 local EnabledFeatures = {}
 
 -- Sistema de idiomas (ahora por defecto en español)
-locl Languages = {
+local Languages = {
     ["Español"] = {
         categories = {
             Movement = "Movimiento",
