@@ -43,7 +43,7 @@ HumanoidRootPart = HumanoidRootPart:WaitForChild("HumanoidRootPart")
 local EnabledFeatures = {}
 
 -- Sistema de idiomas (ahora por defecto en español)
-local Languages = {
+cal Languages = {
     ["Español"] = {
         categories = {
             Movement = "Movimiento",
